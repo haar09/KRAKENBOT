@@ -9,12 +9,23 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.units.Measure;
+import edu.wpi.first.units.Voltage;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import frc.robot.util.ModifiedSignalLogger;
+import frc.robot.util.SwerveVoltageRequest;
+
+import static edu.wpi.first.units.Units.*;
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements
@@ -31,6 +42,12 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     private final Rotation2d RedAlliancePerspectiveRotation = Rotation2d.fromDegrees(180);
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean hasAppliedOperatorPerspective = false;
+
+    private GenericEntry resetPigeon = Shuffleboard.getTab("TabName")
+    .add("Reset Pigeon", false)
+    .withWidget(BuiltInWidgets.kToggleButton)
+    .getEntry(); 
+
 
     public CommandSwerveDrivetrain(SwerveDrivetrainConstants driveTrainConstants, double OdometryUpdateFrequency, SwerveModuleConstants... modules) {
         super(driveTrainConstants, OdometryUpdateFrequency, modules);
@@ -66,11 +83,6 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
     @Override
     public void periodic() {
-        /* Periodically try to apply the operator perspective */
-        /* If we haven't applied the operator perspective before, then we should apply it regardless of DS state */
-        /* This allows us to correct the perspective in case the robot code restarts mid-match */
-        /* Otherwise, only check and apply the operator perspective if the DS is disabled */
-        /* This ensures driving behavior doesn't change until an explicit disable event occurs during testing*/
         if (!hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
             DriverStation.getAlliance().ifPresent((allianceColor) -> {
                 this.setOperatorPerspectiveForward(
@@ -79,5 +91,61 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
                 hasAppliedOperatorPerspective = true;
             });
         }
+
+        if (resetPigeon.getBoolean(false)) {
+            this.getPigeon2().setYaw(0);
+            resetPigeon.setBoolean(false);
+        }
+    }
+
+    private SwerveVoltageRequest driveVoltageRequest = new SwerveVoltageRequest(true);
+
+    private SysIdRoutine m_driveSysIdRoutine =
+    new SysIdRoutine(
+        new SysIdRoutine.Config(null, null, null, ModifiedSignalLogger.logState()),
+        new SysIdRoutine.Mechanism(
+            (Measure<Voltage> volts) -> setControl(driveVoltageRequest.withVoltage(volts.in(Volts))),
+            null,
+            this));
+
+    private SwerveVoltageRequest steerVoltageRequest = new SwerveVoltageRequest(false);
+
+    private SysIdRoutine m_steerSysIdRoutine =
+    new SysIdRoutine(
+        new SysIdRoutine.Config(null, null, null, ModifiedSignalLogger.logState()),
+        new SysIdRoutine.Mechanism(
+            (Measure<Voltage> volts) -> setControl(steerVoltageRequest.withVoltage(volts.in(Volts))),
+            null,
+            this));
+
+    private SysIdRoutine m_slipSysIdRoutine =
+    new SysIdRoutine(
+        new SysIdRoutine.Config(Volts.of(0.25).per(Seconds.of(1)), null, null, ModifiedSignalLogger.logState()),
+        new SysIdRoutine.Mechanism(
+            (Measure<Voltage> volts) -> setControl(driveVoltageRequest.withVoltage(volts.in(Volts))),
+            null,
+            this));
+    
+    public Command runDriveQuasiTest(Direction direction)
+    {
+        return m_driveSysIdRoutine.quasistatic(direction);
+    }
+
+    public Command runDriveDynamTest(SysIdRoutine.Direction direction) {
+        return m_driveSysIdRoutine.dynamic(direction);
+    }
+
+    public Command runSteerQuasiTest(Direction direction)
+    {
+        return m_steerSysIdRoutine.quasistatic(direction);
+    }
+
+    public Command runSteerDynamTest(SysIdRoutine.Direction direction) {
+        return m_steerSysIdRoutine.dynamic(direction);
+    }
+
+    public Command runDriveSlipTest()
+    {
+        return m_slipSysIdRoutine.quasistatic(SysIdRoutine.Direction.kForward);
     }
 }

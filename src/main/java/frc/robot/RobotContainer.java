@@ -8,55 +8,245 @@ import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 
+import static edu.wpi.first.wpilibj2.command.Commands.runOnce;
+
+import java.util.function.Supplier;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.util.sendable.Sendable;
+import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.robot.Constants.IntakextenderConstants;
+import frc.robot.commands.AmpMechanismCmd;
+import frc.robot.commands.ClimbCmd;
+import frc.robot.commands.DriveToNote;
+import frc.robot.commands.IntakeCmd;
+import frc.robot.commands.ShooterAuto;
+import frc.robot.commands.ShooterShoot;
+import frc.robot.commands.SetAngle.AmpAngle;
+import frc.robot.commands.SetAngle.ShooterAutoAngle;
+import frc.robot.commands.SetAngle.ShooterSetAngle;
 import frc.robot.generated.TunerConstants;
+import frc.robot.subsystems.AmpMechanism;
+import frc.robot.subsystems.BeamBreak;
+import frc.robot.subsystems.Climb;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.Extender;
+import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.LEDSubsystem;
+import frc.robot.subsystems.OV9281;
+import frc.robot.subsystems.ObjectDetection;
+import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.ShooterPivot;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 
 public class RobotContainer {
   private double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
   private double MaxAngularRate = 2 * Math.PI; // 4/4 of a rotation per second max angular velocity
+  private double SlowSpeed = 0.1;
+  private double SlowAngularRate = 0.25 * Math.PI;
+  private double AngularRate = MaxAngularRate;
+  private int controlMode = 0;
 
   /* Setting up bindings for necessary control of the swerve drive platform */
   private final CommandXboxController joystick = new CommandXboxController(0); // My joystick
+  private final CommandXboxController operator = new CommandXboxController(1); // My joystick
   private final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain; // My drivetrain
 
   private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
       .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
-      .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want field-centric
-                                                               // driving in open loop
-  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
-  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
+      .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want field-centric driving in open loop
 
-  private final Telemetry logger = new Telemetry(MaxSpeed);
+  private final SwerveRequest.RobotCentric robotOriented = new SwerveRequest.RobotCentric()
+      .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+      .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want r-centric driving in open loop
+
+  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+
+  private final Telemetry logger = new Telemetry(drivetrain.getState());
+  private Supplier<SwerveRequest> controlStyle;
 
   private void configureBindings() {
-    drivetrain.setDefaultCommand( // Drivetrain will execute this command periodically
-        drivetrain.applyRequest(() -> drive.withVelocityX(joystick.getLeftY() * MaxSpeed) // Drive forward with
-                                                                                           // negative Y (forward)
-            .withVelocityY(joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
-            .withRotationalRate(-joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
-        ));
+    updateControlStyle();
 
-    joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
-    joystick.b().whileTrue(drivetrain
-        .applyRequest(() -> point.withModuleDirection(new Rotation2d(joystick.getLeftY(), joystick.getLeftX()))));
+    joystick.y().whileTrue(drivetrain.applyRequest(() -> brake));
 
-    // reset the field-centric heading on left bumper press
-    joystick.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldRelative()));
+    joystick.b().whileTrue(new DriveToNote(joystick.getHID(), intake, extender, ledSubsystem))
+    .onTrue(runOnce(() -> controlMode = 3).andThen(() -> updateControlStyle()));
+
+    joystick.b().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+
+    joystick.leftBumper().onTrue(runOnce(() -> controlMode = 1).andThen(() -> updateControlStyle()));
+    joystick.leftBumper().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+
+    joystick.rightBumper().onTrue(runOnce(() -> MaxSpeed = TunerConstants.kSpeedAt12VoltsMps * SlowSpeed).andThen(() -> AngularRate = SlowAngularRate)
+    .andThen(() -> drive.withDeadband(0.0).withRotationalDeadband(0.0)).andThen(
+      () -> robotOriented.withDeadband(0.0).withRotationalDeadband(0.0)));
+    joystick.rightBumper().onFalse(runOnce(() -> MaxSpeed = TunerConstants.kSpeedAt12VoltsMps).andThen(() -> AngularRate = MaxAngularRate)
+    .andThen(() -> drive.withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1))
+    .andThen(() -> robotOriented.withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1)));
+
+    joystick.rightTrigger(0.3).whileTrue(new ShooterAuto(shooter, intake, extender, drivetrain, shooterPivot, joystick.getHID()))
+    .onTrue(runOnce(() -> controlMode = 2).andThen(() -> updateControlStyle()));
+
+    joystick.rightTrigger(0.3).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+
+    // reset the field-centric heading on menu button
+    joystick.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldRelative()));
 
     if (Utils.isSimulation()) {
       drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
     }
     drivetrain.registerTelemetry(logger::telemeterize);
-  }
+
+    joystick.x().and(joystick.pov(0)).whileTrue(drivetrain.runDriveQuasiTest(Direction.kForward));
+    joystick.x().and(joystick.pov(180)).whileTrue(drivetrain.runDriveQuasiTest(Direction.kReverse));
+
+    joystick.y().and(joystick.pov(0)).whileTrue(drivetrain.runDriveDynamTest(Direction.kForward));
+    joystick.y().and(joystick.pov(180)).whileTrue(drivetrain.runDriveDynamTest(Direction.kReverse));
+
+    joystick.a().and(joystick.pov(0)).whileTrue(drivetrain.runSteerQuasiTest(Direction.kForward));
+    joystick.a().and(joystick.pov(180)).whileTrue(drivetrain.runSteerQuasiTest(Direction.kReverse));
+
+    joystick.b().and(joystick.pov(0)).whileTrue(drivetrain.runSteerDynamTest(Direction.kForward));
+    joystick.b().and(joystick.pov(180)).whileTrue(drivetrain.runSteerDynamTest(Direction.kReverse));
+
+    // Drivetrain needs to be placed against a sturdy wall and test stopped immediately upon wheel slip
+    joystick.back().and(joystick.pov(0)).whileTrue(drivetrain.runDriveSlipTest());
+
+    SmartDashboard.putData("Swerve Drive", new Sendable() {
+      @Override
+      public void initSendable(SendableBuilder builder) {
+        builder.setSmartDashboardType("SwerveDrive");
+
+        builder.addDoubleProperty("Front Left Angle",
+            () -> drivetrain.getModule(0).getCurrentState().angle.getRadians(), null);
+        builder.addDoubleProperty("Front Left Velocity",
+            () -> drivetrain.getModule(0).getCurrentState().speedMetersPerSecond, null);
+
+        builder.addDoubleProperty("Front Right Angle",
+            () -> drivetrain.getModule(1).getCurrentState().angle.getRadians(), null);
+        builder.addDoubleProperty("Front Right Velocity",
+            () -> drivetrain.getModule(1).getCurrentState().speedMetersPerSecond, null);
+
+        builder.addDoubleProperty("Back Left Angle", () -> drivetrain.getModule(2).getCurrentState().angle.getRadians(),
+            null);
+        builder.addDoubleProperty("Back Left Velocity",
+            () -> drivetrain.getModule(2).getCurrentState().speedMetersPerSecond, null);
+
+        builder.addDoubleProperty("Back Right Angle",
+            () -> drivetrain.getModule(3).getCurrentState().angle.getRadians(), null);
+        builder.addDoubleProperty("Back Right Velocity",
+            () -> drivetrain.getModule(3).getCurrentState().speedMetersPerSecond, null);
+
+        builder.addDoubleProperty("Robot Angle", () -> drivetrain.getState().Pose.getRotation().getRadians(), null);
+      }
+    });
+    
+    operator.x().whileTrue(new AmpAngle(shooterPivot));
+    operator.a().whileTrue(new ShooterSetAngle(shooterPivot));
+    operator.y().whileTrue(new ShooterAutoAngle(shooterPivot));
+
+    operator.b().whileTrue(new ShooterAuto(shooter, intake, extender, drivetrain, shooterPivot, joystick.getHID()))
+    .onTrue(runOnce(() -> controlMode = 2).andThen(() -> updateControlStyle()));
+
+    operator.b().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+
+    operator.rightBumper().whileTrue(new ShooterShoot(
+      () -> operator.getRightTriggerAxis(),
+      shooter, intake, extender, false, operator.getHID()))
+      .and(() -> SmartDashboard.getBoolean("Camera Automation", false))
+      .onTrue(runOnce(() -> controlMode = 2).andThen(() -> updateControlStyle()));
+
+    operator.rightBumper().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+
+    operator.leftBumper().whileTrue(new ShooterShoot(
+      () -> operator.getRightTriggerAxis(),
+      shooter, intake, extender, true, operator.getHID())); //l1 ve r2
+    }
+
+  private final LEDSubsystem ledSubsystem;
+  private final Extender extender;
+  private final Intake intake;
+  private final Shooter shooter;
+  private final ObjectDetection objectDetection;
+  private final AmpMechanism ampMechanism;
+  private final Climb climb;
+  private final ShooterPivot shooterPivot;
 
   public RobotContainer() {
+    ledSubsystem = new LEDSubsystem();
+    extender = new Extender();
+    intake = new Intake();
+    shooter = new Shooter(ledSubsystem);    
+    shooterPivot = new ShooterPivot();
+    objectDetection = new ObjectDetection();
+    ampMechanism = new AmpMechanism();
+    climb = new Climb();
+
+    new OV9281(drivetrain);
+    new BeamBreak();
+
+    intake.setDefaultCommand(new IntakeCmd(        
+      () -> joystick.getLeftTriggerAxis() > IntakextenderConstants.kIntakeDeadband,
+      () -> joystick.getHID().getRawButton(1),
+      () -> joystick.getHID().getXButton(),
+      intake,
+      extender,
+      joystick.getHID()
+    ));
+
+    ampMechanism.setDefaultCommand(
+      new AmpMechanismCmd(
+        ampMechanism, 
+        () -> -operator.getLeftY()
+      )
+    );
+
+    climb.setDefaultCommand(
+      new ClimbCmd(
+      () -> operator.getHID().getPOV() == 0, 
+      () -> operator.getHID().getPOV() == 180, 
+      () -> operator.getHID().getPOV() == 90,
+      climb,
+      operator.getHID())
+    );
+
     configureBindings();
+  }
+
+  private void updateControlStyle() {
+    SmartDashboard.putNumber("Control Mode", controlMode);
+    switch (controlMode) {
+      case 0:
+        controlStyle = () -> drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
+        .withVelocityY(-joystick.getLeftX() * MaxSpeed)
+        .withRotationalRate(-joystick.getRightX() * AngularRate);
+        break;
+      case 1:
+        controlStyle = () -> robotOriented.withVelocityX(-joystick.getLeftY() * MaxSpeed)
+        .withVelocityY(-joystick.getLeftX() * MaxSpeed)
+        .withRotationalRate(-joystick.getRightX() * AngularRate);
+        break;
+      case 2:
+        controlStyle = () -> drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
+        .withVelocityY(-joystick.getLeftX() * MaxSpeed)
+        .withRotationalRate(GlobalVariables.getInstance().getSpeakerAngle(drivetrain.getState().Pose));
+        break;
+      case 3:
+        controlStyle = () -> robotOriented.withVelocityX(-0.2 * TunerConstants.kSpeedAt12VoltsMps)
+        .withRotationalRate(GlobalVariables.getInstance().getObjectAngle(objectDetection.getTX()));
+        break;
+    }
+    try {
+        drivetrain.getDefaultCommand().cancel();
+    } catch(Exception e) {}
+    drivetrain.setDefaultCommand(drivetrain.applyRequest(controlStyle).ignoringDisable(true));
   }
 
   public Command getAutonomousCommand() {
