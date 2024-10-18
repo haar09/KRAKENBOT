@@ -1,0 +1,52 @@
+{
+  "version": 1.0,
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 2.4547263405796946,
+        "y": 4.625989931765195
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 1.8819847299801942,
+        "y": 0.42588478736885993
+      },
+      "isLocked": false,
+      "linkedName": "SHOOTED 1ST"
+    },
+    {
+      "anchor": {
+        "x": 8.784255421820326,
+        "y": 0.7195984338301424
+      },
+      "prevControl": {
+        "x": 7.784255421820326,
+        "y": 0.7195984338301427
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": "1stNote Far"
+    }
+  ],
+  "rotationTargets": [],
+  "constraintZones": [],
+  "eventMarkers": [],
+  "globalConstraints": {
+    "maxVelocity": 4.5,
+    "maxAcceleration": 3.0,
+    "maxAngularVelocity": 540.0,
+    "maxAngularAcceleration": 720.0
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": 180.0,
+    "rotateFast": false
+  },
+  "reversed": false,
+  "folder": "2 Note Nearby + Distance",
+  "previewStartingState": {
+    "rotation": 155.0,
+    "velocity": 0
+  },
+  "useDefaultConstraints": true
+}

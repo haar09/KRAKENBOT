@@ -23,6 +23,7 @@ public class GlobalVariables {
         speakerDistance = 0;
         alliance = null;
         thetaController.enableContinuousInput(0, 360);
+        thetaController.setTolerance(1.5);
         thetaController2.enableContinuousInput(0, 360);
     }
 
@@ -51,18 +52,27 @@ public class GlobalVariables {
     
     public double getSpeakerAngle(Pose2d swervePose) {
         if (DriverStation.getAlliance().get() == Alliance.Red) {
-            kSpeakerApriltagPose = VisionConstants.kTagLayout.getTagPose(4).get().getTranslation().toTranslation2d();            
+            kSpeakerApriltagPose = VisionConstants.kTagLayout.getTagPose(4).get().getTranslation().toTranslation2d().minus(new Translation2d(0.1, 0));            
         } else {
-            kSpeakerApriltagPose = VisionConstants.kTagLayout.getTagPose(7).get().getTranslation().toTranslation2d();        
+            kSpeakerApriltagPose = VisionConstants.kTagLayout.getTagPose(7).get().getTranslation().toTranslation2d().plus(new Translation2d(0.1, 0));        
         }
-        SmartDashboard.putNumber("ACI", kSpeakerApriltagPose.minus(swervePose.getTranslation()).getAngle().getDegrees());
         return thetaController.calculate(swervePose.getRotation().getDegrees() ,kSpeakerApriltagPose.minus(swervePose.getTranslation()).getAngle().getDegrees());
     }
 
     private PIDController thetaController2 = new PIDController(PIDConstants.kPObjectRotate, 0, PIDConstants.kDObjectRotate);
 
     public double getObjectAngle(double angle){
-        return thetaController.calculate(angle);
+        return thetaController2.calculate(angle);
+    }
+
+    double feed_rot;
+    public double getFeedAngle(Pose2d swervePose) {
+        if (DriverStation.getAlliance().get() == Alliance.Red) {
+            feed_rot = 33.3;
+        } else {
+            feed_rot = 146.7;
+        }
+        return thetaController.calculate(swervePose.getRotation().getDegrees() , feed_rot);
     }
 
     public static GlobalVariables getInstance() {

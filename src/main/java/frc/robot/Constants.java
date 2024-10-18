@@ -24,8 +24,8 @@ public final class Constants {
   
   public static final class AutoConstants {
     public static final double kMaxSpeedMetersPerSecond = 4.5;
-    public static final double kPXYController = 3.2;
-    public static final double kPThetaController = 2;
+    public static final double kPXYController = 2;
+    public static final double kPThetaController = 10;
 
     public static final PathConstraints kPathConstraints = new PathConstraints(
       kMaxSpeedMetersPerSecond, 3, Math.toRadians(540), Math.toRadians(720));
@@ -33,38 +33,35 @@ public final class Constants {
 
   public static class VisionConstants {
     public static final Transform3d kRobotToCam1 = //OV9281 001
-                new Transform3d(new Translation3d(0.874014, -0.479552, 0.61602),
-                                new Rotation3d(0, Math.toRadians(-15), 0)
+                new Transform3d(new Translation3d(0.0874014, -0.0479552, 0.61602),
+                                new Rotation3d(0, Math.toRadians(-18.05), Math.toRadians(1.5))
                                 );
     public static final Transform3d kRobotToCam2 = //OV9281 002
                 new Transform3d(new Translation3d(-0.070937, -0.264048, 0.212),
-                                new Rotation3d(0, Math.toRadians(-28.1), Math.toRadians(-150))
+                                new Rotation3d(0, Math.toRadians(-28.125), Math.toRadians(-150))
                                 );
 
     public static final AprilTagFieldLayout kTagLayout =
                 AprilTagFields.kDefaultField.loadAprilTagLayoutField();
 
-    public static final double x_DistanceToSpeaker[] = {0   , 1.3 , 1.5 , 2   , 2.5 , 3   , 3.2 , 100000};
-    public static final double y_ArmAngle[] =          {29  , 29  , 22  , 14.5, 6.65, 2.5 , 0   , 0};
+    public static final double x_DistanceToSpeaker[] = {0   , 1.3 , 1.5 , 2   , 2.5 , 3   , 100000};
+    public static final double y_ArmAngle[] =          {31  , 31  , 22  , 16  , 10  , 6.7   , 0};
     public static final UnivariateInterpolator angleInterpolator = new SplineInterpolator();
     public static final UnivariateFunction angleFunction = angleInterpolator.interpolate(x_DistanceToSpeaker, y_ArmAngle);
+
+    public static final double kFeedAngle = 4;
+    public static final double kAmpAngle = 22;
 
     public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.3, 0.3, 5);
     public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.25, 0.25, 3);
   }
 
   public static class PIDConstants{
-    public static final double kPTurning = 0.45;
-    public static final double kDTurning = 0.001;
+    public static final double kPLimeLightRotate = 0.07;
+    public static final double kDLimeLightRotate = 0;
 
-    public static final double kPLimeLightRotate = 0.04;
-    public static final double kDLimeLightRotate = 0.01;
-
-    public static final double kPObjectRotate = 0.08;
-    public static final double kDObjectRotate = 0.0015;
-
-    public static final double kP180Rotate = 0.045;
-    public static final double kD180Rotate = 0.00001;
+    public static final double kPObjectRotate = 0.18;
+    public static final double kDObjectRotate = 0;
   }
 
   public static class ShooterConstants{
@@ -77,7 +74,7 @@ public final class Constants {
     public static final int kPivotMotorId = 3;
     public static final int kAbsoluteEncoderId = 54;
 
-    public static final double kAbsoluteEncoderOffset = 0;
+    public static final double kAbsoluteEncoderOffset = 0.011;
     public static final boolean kPivotMotorReversed = true;
 
     public static final double kAngleP = 1;
@@ -94,11 +91,59 @@ public final class Constants {
     public static final boolean kShooterMotorLeftReversed = false;
     public static final boolean kShooterMotorRightReversed = true; 
   
-    public static final double kSpeakerSpeedLeft = 0.9;
-    public static final double kSpeakerSpeedRight = 0.75;
+    /*public static final TalonFXConfiguration leftMotorConfig = new TalonFXConfiguration();
 
-    public static final double kAmpSpeedLeft = 0.35;
-    public static final double kAmpSpeedRight = 0.35;
+    // set slot 0 gains
+    private static final Slot0Configs left_slot0Configs;
+
+    static {
+      left_slot0Configs = leftMotorConfig.Slot0;
+      left_slot0Configs.kS = 0.27698; // Add 0.25 V output to overcome static friction
+      left_slot0Configs.kV = 0.12961; // A velocity target of 1 rps results in 0.12 V output
+      left_slot0Configs.kA = 0.019564; // An acceleration of 1 rps/s requires 0.01 V output
+      left_slot0Configs.kP = 0.17267; // An error of 1 rps results in 0.11 V output
+      left_slot0Configs.kI = 0; // no output for integrated error
+      left_slot0Configs.kD = 0; // no output for error derivative 
+    }
+
+    // set Motion Magic Velocity settings
+    private static final MotionMagicConfigs left_motionMagicConfigs;
+
+    static {
+      left_motionMagicConfigs = leftMotorConfig.MotionMagic;
+      left_motionMagicConfigs.MotionMagicAcceleration = 400; // Target acceleration of 400 rps/s (0.25 seconds to max)
+      left_motionMagicConfigs.MotionMagicJerk = 4000; // Target jerk of 4000 rps/s/s (0.1 seconds)
+    }
+
+    public static final TalonFXConfiguration rightMotorConfig = new TalonFXConfiguration();
+
+    // set slot 0 gains
+    private static final Slot0Configs right_slot0Configs;
+
+    static {
+      right_slot0Configs = rightMotorConfig.Slot0;
+      right_slot0Configs.kS = 0.25; // Add 0.25 V output to overcome static friction
+      right_slot0Configs.kV = 0.12; // A velocity target of 1 rps results in 0.12 V output
+      right_slot0Configs.kA = 0.01; // An acceleration of 1 rps/s requires 0.01 V output
+      right_slot0Configs.kP = 0.11; // An error of 1 rps results in 0.11 V output
+      right_slot0Configs.kI = 0; // no output for integrated error
+      right_slot0Configs.kD = 0; // no output for error derivative 
+    }
+
+    // set Motion Magic Velocity settings
+    private static final MotionMagicConfigs right_motionMagicConfigs;
+
+    static {
+      right_motionMagicConfigs = rightMotorConfig.MotionMagic;
+      right_motionMagicConfigs.MotionMagicAcceleration = 400; // Target acceleration of 400 rps/s (0.25 seconds to max)
+      right_motionMagicConfigs.MotionMagicJerk = 4000; // Target jerk of 4000 rps/s/s (0.1 seconds)
+    }*/
+
+    public static final double kSpeakerSpeedLeft = 0.87;
+    public static final double kSpeakerSpeedRight = 0.8;
+
+    public static final double kAmpSpeedLeft = 0.32;
+    public static final double kAmpSpeedRight = 0.32;
     
     public static final double kVoltageCompensation = 10;
   }

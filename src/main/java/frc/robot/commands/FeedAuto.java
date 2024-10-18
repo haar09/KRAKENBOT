@@ -5,30 +5,27 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants;
 import frc.robot.GlobalVariables;
 import frc.robot.Constants.IntakextenderConstants;
-import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Extender;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.ShooterPivot;
 import frc.robot.subsystems.Shooter.ShooterState;
 
-public class ShooterAuto extends Command{
+public class FeedAuto extends Command{
     private final Shooter shooter;
     private final Extender extender;
     private final Intake intake;
-    private final CommandSwerveDrivetrain drivetrain;
     private final ShooterPivot shooterPivot;
     private boolean ending;
     private final XboxController operatorController;
 
-    public ShooterAuto(Shooter shooter, Intake intake,Extender extender,
-    CommandSwerveDrivetrain drivetrain, ShooterPivot shooterPivot, XboxController operatorController){
+    public FeedAuto(Shooter shooter, Intake intake,Extender extender, ShooterPivot shooterPivot, XboxController operatorController){
         this.shooter = shooter;
         this.extender = extender;
         this.intake = intake;
-        this.drivetrain = drivetrain;
         this.shooterPivot = shooterPivot;
         this.operatorController = operatorController;
         ending = false;
@@ -57,27 +54,21 @@ public class ShooterAuto extends Command{
         double timeElapsed = Timer.getFPGATimestamp() - startTime;
 
         if (GlobalVariables.getInstance().extenderFull) {
-            if (GlobalVariables.getInstance().speakerDistance < 3.8) {
-                shooter.setSpeakerSpeed();
-            }
+            shooter.setSpeakerSpeed();
         } else {
             operatorController.setRumble(RumbleType.kBothRumble, 1);
             return;
         }
 
-        shooterPivot.setDesiredAngle(GlobalVariables.getInstance().speakerToAngle());
+        shooterPivot.setDesiredAngle(Constants.VisionConstants.kFeedAngle);
 
         switch (state) {
             case START:
                 if (shooter.state == ShooterState.READY) {
                     if (GlobalVariables.getInstance().extenderFull) {
-                        if (GlobalVariables.getInstance().speakerToAngle() > 0 &&
-                        Math.abs(drivetrain.getState().speeds.vxMetersPerSecond) < 0.02 && Math.abs(drivetrain.getState().speeds.vyMetersPerSecond) < 0.02
-                        && drivetrain.getPigeon2().getAngularVelocityZDevice().getValue() < 0.02) {
                             operatorController.setRumble(RumbleType.kBothRumble, 0);
                             startTime = Timer.getFPGATimestamp();
                             state = State.EXTEND;
-                        }
                     } else {
                         operatorController.setRumble(RumbleType.kBothRumble, 1);
                     }
@@ -116,7 +107,7 @@ public class ShooterAuto extends Command{
         extender.setOutputPercentage(0);
         shooter.stopShooter();    
         SmartDashboard.putBoolean("shooterReady", false);
-
+        operatorController.setRumble(RumbleType.kBothRumble, 0);
         GlobalVariables.getInstance().customRotateSpeed = 0;
     }
 

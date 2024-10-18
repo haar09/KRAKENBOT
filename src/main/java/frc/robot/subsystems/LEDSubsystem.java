@@ -25,7 +25,7 @@ public class LEDSubsystem extends SubsystemBase {
         // Reuse buffer
         // Default to a length of 60, start empty output
         // Length is expensive to set, so only set it once, then just update data
-        m_ledBuffer = new AddressableLEDBuffer(46);
+        m_ledBuffer = new AddressableLEDBuffer(42);
         m_led.setLength(m_ledBuffer.getLength());
 
         // Set the data
@@ -98,11 +98,11 @@ public class LEDSubsystem extends SubsystemBase {
         }
 
         // Move five
-        for (int i = 18; i < 46; i++) {
+        for (int i = 18; i < 42; i++) {
             m_ledBuffer.setRGB(i, 0, 0, 0); // Set to red
         }
         position2 += direction2;
-        if (position2 == 18 || position2 == 46 - 5) {
+        if (position2 == 18 || position2 == 42 - 5) {
             direction2 *= -1; // Reverse direction when reaching ends
         }
         for (int i = position2; i < position2 + 5; i++) {

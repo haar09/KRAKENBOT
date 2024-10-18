@@ -1,38 +1,32 @@
-package frc.robot.commands;
+package frc.robot.commands.AutoCommands;
 
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants;
 import frc.robot.GlobalVariables;
 import frc.robot.Constants.IntakextenderConstants;
-import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Extender;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.ShooterPivot;
 import frc.robot.subsystems.Shooter.ShooterState;
+import frc.robot.subsystems.ShooterPivot;
 
-public class ShooterAuto extends Command{
+public class SpeakerShoot extends Command{
     private final Shooter shooter;
     private final Extender extender;
     private final Intake intake;
-    private final CommandSwerveDrivetrain drivetrain;
-    private final ShooterPivot shooterPivot;
+    private final ShooterPivot m_ShooterPivot;
     private boolean ending;
-    private final XboxController operatorController;
+    private double desiredAngle;
 
-    public ShooterAuto(Shooter shooter, Intake intake,Extender extender,
-    CommandSwerveDrivetrain drivetrain, ShooterPivot shooterPivot, XboxController operatorController){
+    public SpeakerShoot(Shooter shooter, ShooterPivot pivot ,Extender extender, Intake intake, double desiredAngle){
         this.shooter = shooter;
+        this.m_ShooterPivot = pivot;
         this.extender = extender;
         this.intake = intake;
-        this.drivetrain = drivetrain;
-        this.shooterPivot = shooterPivot;
-        this.operatorController = operatorController;
-        ending = false;
-        addRequirements(shooter, extender); 
+        this.desiredAngle = desiredAngle;
+        ending = false; 
     }
 
     private enum State {
@@ -53,34 +47,21 @@ public class ShooterAuto extends Command{
     }
 
     @Override
-    public void execute() {
+    public void execute(){
         double timeElapsed = Timer.getFPGATimestamp() - startTime;
 
-        if (GlobalVariables.getInstance().extenderFull) {
-            if (GlobalVariables.getInstance().speakerDistance < 3.8) {
-                shooter.setSpeakerSpeed();
-            }
+        shooter.setSpeakerSpeed();
+
+        if (desiredAngle == 0){
+        m_ShooterPivot.setDesiredAngle(GlobalVariables.getInstance().speakerToAngle());
         } else {
-            operatorController.setRumble(RumbleType.kBothRumble, 1);
-            return;
+            m_ShooterPivot.setDesiredAngle(Constants.VisionConstants.y_ArmAngle[0]);
         }
-
-        shooterPivot.setDesiredAngle(GlobalVariables.getInstance().speakerToAngle());
-
         switch (state) {
             case START:
                 if (shooter.state == ShooterState.READY) {
-                    if (GlobalVariables.getInstance().extenderFull) {
-                        if (GlobalVariables.getInstance().speakerToAngle() > 0 &&
-                        Math.abs(drivetrain.getState().speeds.vxMetersPerSecond) < 0.02 && Math.abs(drivetrain.getState().speeds.vyMetersPerSecond) < 0.02
-                        && drivetrain.getPigeon2().getAngularVelocityZDevice().getValue() < 0.02) {
-                            operatorController.setRumble(RumbleType.kBothRumble, 0);
-                            startTime = Timer.getFPGATimestamp();
-                            state = State.EXTEND;
-                        }
-                    } else {
-                        operatorController.setRumble(RumbleType.kBothRumble, 1);
-                    }
+                    startTime = Timer.getFPGATimestamp();
+                    state = State.EXTEND;
                 }
                 break;
             case EXTEND:
@@ -91,6 +72,7 @@ public class ShooterAuto extends Command{
                 }
                 break;
             case SHOOT:
+                timeElapsed = Timer.getFPGATimestamp() - startTime;
                 if (timeElapsed < 1.3) {
                     shooter.setSpeakerSpeed();
                     extender.setOutputPercentage(1);
@@ -100,6 +82,7 @@ public class ShooterAuto extends Command{
                 }
                 break;
             case END:
+                shooter.stopShooter();
                 ending = true;
                 end(false);
                 extender.setOutputPercentage(0);

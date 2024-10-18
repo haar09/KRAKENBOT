@@ -1,23 +1,31 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.Constants.ShooterConstants;
 import frc.robot.GlobalVariables;
+
+import static edu.wpi.first.units.Units.*;
+import edu.wpi.first.units.*;
 
 public class Shooter extends SubsystemBase{
 
     private final TalonFX leftMotor;
-    private final VoltageOut leftMotorVoltageRequest;
+    private final MotionMagicVelocityVoltage leftMotorVoltageRequest;
 
-    private final TalonFX rightMotor;
-    private final VoltageOut rightMotorVoltageRequest;
+    private final TalonFX rightMotor = new TalonFX(ShooterConstants.kShooterMotorRightId);
+    private final MotionMagicVelocityVoltage rightMotorVoltageRequest;
 
     public final LEDSubsystem ledSubsystem;
 
@@ -27,27 +35,28 @@ public class Shooter extends SubsystemBase{
         ledSubsystem = m_LedSubsystem;
 
         leftMotor = new TalonFX(ShooterConstants.kShooterMotorLeftId);
-        rightMotor = new TalonFX(ShooterConstants.kShooterMotorRightId);
 
         leftMotor.setNeutralMode(NeutralModeValue.Coast);
         rightMotor.setNeutralMode(NeutralModeValue.Coast);
 
         leftMotor.setInverted(ShooterConstants.kShooterMotorLeftReversed);
-        rightMotor.setInverted(ShooterConstants.kShooterMotorRightReversed);
+        // bunsuz bu dene rightMotor.setInverted(ShooterConstants.kShooterMotorRightReversed);
+        
+        leftMotor.getConfigurator().apply(ShooterConstants.leftMotorConfig);
+        rightMotor.getConfigurator().apply(ShooterConstants.rightMotorConfig);
 
-        leftMotorVoltageRequest = new VoltageOut(0);
-        rightMotorVoltageRequest = new VoltageOut(0);
+        leftMotorVoltageRequest = new MotionMagicVelocityVoltage(0);
+        rightMotorVoltageRequest = new MotionMagicVelocityVoltage(0);
 
-        BaseStatusSignal.setUpdateFrequencyForAll(100, 
-        leftMotor.getPosition(),
-        leftMotor.getVelocity(),
-        leftMotor.getMotorVoltage(),
+        BaseStatusSignal.setUpdateFrequencyForAll(250,
         rightMotor.getPosition(),
         rightMotor.getVelocity(),
         rightMotor.getMotorVoltage());
 
-        leftMotor.optimizeBusUtilization();
+        /* Optimize out the other signals, since they're not useful for SysId */
         rightMotor.optimizeBusUtilization();
+
+        SignalLogger.start();
     }
 
     public enum ShooterState {
@@ -63,14 +72,14 @@ public class Shooter extends SubsystemBase{
         switch (state) {
             case IDLE:
                 SmartDashboard.putBoolean("shooterReady", false);
-                leftMotor.setControl(leftMotorVoltageRequest.withOutput((ShooterConstants.kSpeakerSpeedLeft * ShooterConstants.kVoltageCompensation)));
-                rightMotor.setControl(rightMotorVoltageRequest.withOutput((ShooterConstants.kSpeakerSpeedRight * ShooterConstants.kVoltageCompensation)));
+                leftMotor.setControl(leftMotorVoltageRequest.withVelocity(ShooterConstants.kSpeakerSpeedLeft));
+                rightMotor.setControl(rightMotorVoltageRequest.withVelocity(ShooterConstants.kSpeakerSpeedRight));
                 startTime = Timer.getFPGATimestamp();
                 state = ShooterState.ACCELERATING; 
                 ledSubsystem.isAccelerating = true;
                 break;
             case ACCELERATING:
-                if (leftMotor.getVelocity().getValueAsDouble() >= 64 && rightMotor.getVelocity().getValueAsDouble() >= 52) {
+                if (leftMotor.getVelocity().getValueAsDouble() >= 65 && rightMotor.getVelocity().getValueAsDouble() >= 50) {
                     SmartDashboard.putBoolean("shooterReady", true);
                     state = ShooterState.READY;
                     ledSubsystem.isReady = true;
@@ -80,8 +89,8 @@ public class Shooter extends SubsystemBase{
                 }
             break;
             case READY:
-                leftMotor.setControl(leftMotorVoltageRequest.withOutput(ShooterConstants.kSpeakerSpeedLeft * ShooterConstants.kVoltageCompensation));
-                rightMotor.setControl(rightMotorVoltageRequest.withOutput(ShooterConstants.kSpeakerSpeedRight * ShooterConstants.kVoltageCompensation));
+                leftMotor.setControl(leftMotorVoltageRequest.withVelocity(ShooterConstants.kSpeakerSpeedLeft));
+                rightMotor.setControl(rightMotorVoltageRequest.withVelocity(ShooterConstants.kSpeakerSpeedRight));
                 ledSubsystem.isAccelerating = false;
                 break;
         }
@@ -91,14 +100,14 @@ public class Shooter extends SubsystemBase{
         switch (state) {
             case IDLE:
                 SmartDashboard.putBoolean("shooterReady", false);
-                leftMotor.setControl(leftMotorVoltageRequest.withOutput((ShooterConstants.kAmpSpeedLeft * ShooterConstants.kVoltageCompensation)));
-                rightMotor.setControl(rightMotorVoltageRequest.withOutput((ShooterConstants.kAmpSpeedRight * ShooterConstants.kVoltageCompensation)));
+                leftMotor.setControl(leftMotorVoltageRequest.withVelocity(ShooterConstants.kAmpSpeedLeft));
+                rightMotor.setControl(rightMotorVoltageRequest.withVelocity(ShooterConstants.kAmpSpeedRight));
                 startTime = Timer.getFPGATimestamp();
                 state = ShooterState.ACCELERATING; 
                 ledSubsystem.isAccelerating = true;
                 break;
             case ACCELERATING:
-                if (leftMotor.getVelocity().getValueAsDouble() >= 21.2 && rightMotor.getVelocity().getValueAsDouble() >= 21.2) {
+                if (leftMotor.getVelocity().getValueAsDouble() >= 24 && rightMotor.getVelocity().getValueAsDouble() >= 24) {
                     SmartDashboard.putBoolean("shooterReady", true);
                     state = ShooterState.READY;
                     ledSubsystem.isReady = true;
@@ -108,19 +117,42 @@ public class Shooter extends SubsystemBase{
                 }
             break;
             case READY:
-                leftMotor.setControl(leftMotorVoltageRequest.withOutput(ShooterConstants.kAmpSpeedLeft * ShooterConstants.kVoltageCompensation));
-                rightMotor.setControl(rightMotorVoltageRequest.withOutput((ShooterConstants.kAmpSpeedRight * ShooterConstants.kVoltageCompensation)));
+                leftMotor.setControl(leftMotorVoltageRequest.withVelocity(ShooterConstants.kAmpSpeedLeft));
+                rightMotor.setControl(rightMotorVoltageRequest.withVelocity(ShooterConstants.kAmpSpeedRight));
                 ledSubsystem.isAccelerating = false;
                 break;
         }
     }
 
+
     public void stopShooter() {
-        leftMotor.setControl(leftMotorVoltageRequest.withOutput(0));
-        rightMotor.setControl(leftMotorVoltageRequest.withOutput(0));
+        leftMotor.setControl(leftMotorVoltageRequest.withVelocity(0));
+        rightMotor.setControl(leftMotorVoltageRequest.withVelocity(0));
         ledSubsystem.isReady = false;
-        ledSubsystem.isAccelerating = false;
     }
+
+    
+    private final VoltageOut m_sysIdControl = new VoltageOut(0);
+    
+    private final SysIdRoutine m_sysIdRoutine =
+        new SysIdRoutine(
+            new SysIdRoutine.Config(
+                null,         // Use default ramp rate (1 V/s)
+                Volts.of(4), // Reduce dynamic voltage to 4 to prevent brownout
+                null,          // Use default timeout (10 s)
+                                       // Log state with Phoenix SignalLogger class
+                (state)->SignalLogger.writeString("rightState", state.toString())),
+            new SysIdRoutine.Mechanism(
+                (Measure<Voltage> volts)-> rightMotor.setControl(m_sysIdControl.withOutput(volts.in(Volts))),
+                null,
+                this));
+    
+    public Command sysIdQuasistatic(Direction direction) {
+            return m_sysIdRoutine.quasistatic(direction);
+        }
+    public Command sysIdDynamic(Direction direction) {
+            return m_sysIdRoutine.dynamic(direction);
+        }
 
     @Override
     public void periodic() {
