@@ -18,7 +18,7 @@
           }
         },
         {
-          "type": "race",
+          "type": "deadline",
           "data": {
             "commands": [
               {
@@ -43,7 +43,7 @@
           }
         },
         {
-          "type": "race",
+          "type": "deadline",
           "data": {
             "commands": [
               {
@@ -57,6 +57,12 @@
                 "data": {
                   "name": "IntakeIn"
                 }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AmpSpeed"
+                }
               }
             ]
           }
@@ -68,7 +74,7 @@
           }
         },
         {
-          "type": "race",
+          "type": "deadline",
           "data": {
             "commands": [
               {
@@ -81,6 +87,12 @@
                 "type": "named",
                 "data": {
                   "name": "IntakeIn"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AmpSpeed"
                 }
               }
             ]

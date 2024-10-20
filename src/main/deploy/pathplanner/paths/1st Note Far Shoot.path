@@ -3,13 +3,13 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 8.784255421820326,
-        "y": 0.7195984338301424
+        "x": 8.857683833435646,
+        "y": 0.8
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.832433274884441,
-        "y": 0.5139988813072452
+        "x": 5.905861686499761,
+        "y": 0.5944004474771029
       },
       "isLocked": false,
       "linkedName": "1stNote Far"
@@ -30,7 +30,25 @@
   ],
   "rotationTargets": [],
   "constraintZones": [],
-  "eventMarkers": [],
+  "eventMarkers": [
+    {
+      "name": "New Event Marker",
+      "waypointRelativePos": 0.55,
+      "command": {
+        "type": "parallel",
+        "data": {
+          "commands": [
+            {
+              "type": "named",
+              "data": {
+                "name": "AmpSpeed"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
   "globalConstraints": {
     "maxVelocity": 4.5,
     "maxAcceleration": 3.0,

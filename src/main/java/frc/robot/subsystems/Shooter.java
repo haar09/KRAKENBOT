@@ -115,6 +115,11 @@ public class Shooter extends SubsystemBase{
         }
     }
 
+    public void preSpeed() {
+        leftMotor.setControl(leftMotorVoltageRequest.withOutput(ShooterConstants.kAmpSpeedLeft * ShooterConstants.kVoltageCompensation));
+        rightMotor.setControl(rightMotorVoltageRequest.withOutput((ShooterConstants.kAmpSpeedRight * ShooterConstants.kVoltageCompensation)));
+    }
+
     public void stopShooter() {
         leftMotor.setControl(leftMotorVoltageRequest.withOutput(0));
         rightMotor.setControl(leftMotorVoltageRequest.withOutput(0));

@@ -85,7 +85,7 @@ public class ShooterShoot extends Command{
                 }
                 break;
             case SHOOT:
-                if (timeElapsed < 1.3) {
+                if (timeElapsed < 2) {
                     if (amp) {
                         shooter.setAmpSpeed();
                     } else {

@@ -12,7 +12,13 @@
     "data": {
       "commands": [
         {
-          "type": "race",
+          "type": "named",
+          "data": {
+            "name": "ShootToSpeaker0m"
+          }
+        },
+        {
+          "type": "deadline",
           "data": {
             "commands": [
               {
@@ -25,6 +31,12 @@
                 "type": "named",
                 "data": {
                   "name": "IntakeIn"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AmpSpeed"
                 }
               }
             ]

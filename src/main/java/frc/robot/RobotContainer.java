@@ -34,6 +34,7 @@ import frc.robot.commands.IntakeCmd;
 import frc.robot.commands.ShooterAuto;
 import frc.robot.commands.ShooterShoot;
 import frc.robot.commands.AutoCommands.IntakeIn;
+import frc.robot.commands.AutoCommands.PreSpeedup;
 import frc.robot.commands.AutoCommands.SpeakerShoot;
 import frc.robot.commands.SetAngle.AmpAngle;
 import frc.robot.commands.SetAngle.ShooterAutoAngle;
@@ -159,11 +160,7 @@ public class RobotContainer {
 
     operator.rightBumper().whileTrue(new ShooterShoot(
       () -> operator.getRightTriggerAxis(),
-      shooter, intake, extender, false, operator.getHID()))
-      .and(() -> SmartDashboard.getBoolean("Camera Automation", false))
-      .onTrue(runOnce(() -> controlMode = 2).andThen(() -> updateControlStyle()));
-
-    operator.rightBumper().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+      shooter, intake, extender, false, operator.getHID()));
 
     operator.leftBumper().whileTrue(new ShooterShoot(
       () -> operator.getRightTriggerAxis(),
@@ -220,6 +217,7 @@ public class RobotContainer {
     NamedCommands.registerCommand("ShootToSpeakerAuto", new SpeakerShoot(shooter, shooterPivot, extender, intake, 0));
     NamedCommands.registerCommand("ShootToSpeaker0m", new SpeakerShoot(shooter, shooterPivot, extender, intake, VisionConstants.y_ArmAngle[1]));
     NamedCommands.registerCommand("IntakeIn", new IntakeIn(intake, extender));
+    NamedCommands.registerCommand("AmpSpeed", new PreSpeedup(shooter));
 
     configureBindings();
 

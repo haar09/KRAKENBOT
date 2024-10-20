@@ -155,9 +155,9 @@ public final class Constants {
     public static final double kIntakeDeadband = 0.3;
 
 
-    public static final int kExtenderMotorId = 2;
+    public static final int kExtenderMotorId = 62;
     public static final boolean kExtenderMotorReversed = false;
-    public static final double kExtenderSpeed = 0.11;
+    public static final double kExtenderSpeed = 0.15;
     public static final double kExtenderBackSpeed = 0.3;
   }
 

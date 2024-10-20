@@ -62,7 +62,9 @@ public class ShooterAuto extends Command{
             }
         } else {
             operatorController.setRumble(RumbleType.kBothRumble, 1);
-            return;
+            if (state == State.START) {
+                return;
+            }
         }
 
         shooterPivot.setDesiredAngle(GlobalVariables.getInstance().speakerToAngle());
@@ -72,8 +74,8 @@ public class ShooterAuto extends Command{
                 if (shooter.state == ShooterState.READY) {
                     if (GlobalVariables.getInstance().extenderFull) {
                         if (GlobalVariables.getInstance().speakerToAngle() > 0 &&
-                        Math.abs(drivetrain.getState().speeds.vxMetersPerSecond) < 0.02 && Math.abs(drivetrain.getState().speeds.vyMetersPerSecond) < 0.02
-                        && drivetrain.getPigeon2().getAngularVelocityZDevice().getValue() < 0.02) {
+                        Math.abs(drivetrain.getState().speeds.vxMetersPerSecond) < 0.03 && Math.abs(drivetrain.getState().speeds.vyMetersPerSecond) < 0.03
+                        && drivetrain.getPigeon2().getAngularVelocityZDevice().getValue() < 0.5) {
                             operatorController.setRumble(RumbleType.kBothRumble, 0);
                             startTime = Timer.getFPGATimestamp();
                             state = State.EXTEND;
@@ -91,7 +93,7 @@ public class ShooterAuto extends Command{
                 }
                 break;
             case SHOOT:
-                if (timeElapsed < 1.3) {
+                if (timeElapsed < 2) {
                     shooter.setSpeakerSpeed();
                     extender.setOutputPercentage(1);
                     intake.setOutputPercentage(0.6);

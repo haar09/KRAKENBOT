@@ -57,7 +57,9 @@ public class FeedAuto extends Command{
             shooter.setSpeakerSpeed();
         } else {
             operatorController.setRumble(RumbleType.kBothRumble, 1);
-            return;
+            if (state == State.START) {
+                return;
+            }
         }
 
         shooterPivot.setDesiredAngle(Constants.VisionConstants.kFeedAngle);
@@ -65,13 +67,10 @@ public class FeedAuto extends Command{
         switch (state) {
             case START:
                 if (shooter.state == ShooterState.READY) {
-                    if (GlobalVariables.getInstance().extenderFull) {
-                            operatorController.setRumble(RumbleType.kBothRumble, 0);
-                            startTime = Timer.getFPGATimestamp();
-                            state = State.EXTEND;
-                    } else {
-                        operatorController.setRumble(RumbleType.kBothRumble, 1);
-                    }
+                    operatorController.setRumble(RumbleType.kBothRumble, 0);
+                    startTime = Timer.getFPGATimestamp();
+                    state = State.EXTEND;
+                    operatorController.setRumble(RumbleType.kBothRumble, 1);
                 }
                 break;
             case EXTEND:
@@ -82,7 +81,7 @@ public class FeedAuto extends Command{
                 }
                 break;
             case SHOOT:
-                if (timeElapsed < 1.3) {
+                if (timeElapsed < 2) {
                     shooter.setSpeakerSpeed();
                     extender.setOutputPercentage(1);
                     intake.setOutputPercentage(0.6);
@@ -107,7 +106,7 @@ public class FeedAuto extends Command{
         extender.setOutputPercentage(0);
         shooter.stopShooter();    
         SmartDashboard.putBoolean("shooterReady", false);
-        operatorController.setRumble(RumbleType.kBothRumble, 0);
+
         GlobalVariables.getInstance().customRotateSpeed = 0;
     }
 

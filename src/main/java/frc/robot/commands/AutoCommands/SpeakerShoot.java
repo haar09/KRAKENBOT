@@ -73,7 +73,7 @@ public class SpeakerShoot extends Command{
                 break;
             case SHOOT:
                 timeElapsed = Timer.getFPGATimestamp() - startTime;
-                if (timeElapsed < 1.3) {
+                if (timeElapsed < 1) {
                     shooter.setSpeakerSpeed();
                     extender.setOutputPercentage(1);
                     intake.setOutputPercentage(0.6);

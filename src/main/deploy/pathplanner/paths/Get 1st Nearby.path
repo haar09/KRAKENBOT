@@ -16,16 +16,16 @@
     },
     {
       "anchor": {
-        "x": 2.0582129178569635,
-        "y": 4.317590602980848
+        "x": 2.1756983764414763,
+        "y": 4.082619685811823
       },
       "prevControl": {
-        "x": 1.2675968170875018,
-        "y": 4.556768583045559
+        "x": 1.3511641241502583,
+        "y": 4.033393760301899
       },
       "nextControl": {
-        "x": 3.8058091143015926,
-        "y": 3.788906039350541
+        "x": 4.143579807732067,
+        "y": 4.2001051443963355
       },
       "isLocked": false,
       "linkedName": null
@@ -52,7 +52,25 @@
     }
   ],
   "constraintZones": [],
-  "eventMarkers": [],
+  "eventMarkers": [
+    {
+      "name": "speed up",
+      "waypointRelativePos": 1.0,
+      "command": {
+        "type": "parallel",
+        "data": {
+          "commands": [
+            {
+              "type": "named",
+              "data": {
+                "name": "AmpSpeed"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
   "globalConstraints": {
     "maxVelocity": 4.5,
     "maxAcceleration": 3.0,
