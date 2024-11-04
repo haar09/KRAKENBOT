@@ -2,24 +2,15 @@ package frc.robot.subsystems;
 
 
 import com.revrobotics.CANSparkBase.IdleMode;
-import com.revrobotics.CANSparkBase.SoftLimitDirection;
-import com.revrobotics.CANSparkMax;
-
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ClimbConstants;
+import frc.robot.util.NEO;
 
 public class Climb extends SubsystemBase {
-    private final CANSparkMax climbMotor;
+    private final NEO climbMotor;
 
     public Climb() {
-        climbMotor = new CANSparkMax(ClimbConstants.kClimbMotorId, CANSparkMax.MotorType.kBrushless);
-        climbMotor.setInverted(ClimbConstants.kClimbMotorReversed);
-
-        climbMotor.setIdleMode(IdleMode.kBrake);
-
-        climbMotor.enableSoftLimit(SoftLimitDirection.kReverse, false);
-
-        climbMotor.burnFlash();
+        climbMotor = new NEO(ClimbConstants.kClimbMotorId, ClimbConstants.kClimbMotorReversed, IdleMode.kBrake);
     }   
 
     public void setOutputPercentage(double percentage) {

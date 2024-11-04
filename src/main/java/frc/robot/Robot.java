@@ -21,7 +21,6 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
     m_robotContainer = new RobotContainer();
-    SmartDashboard.putBoolean("Camera Automation", true);
     SignalLogger.setPath("/media/sda1/ctre-logs/");
   }
 

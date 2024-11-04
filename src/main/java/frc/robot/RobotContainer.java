@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.Constants.IntakextenderConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.commands.AmpMechanismCmd;
@@ -33,6 +34,7 @@ import frc.robot.commands.GoToFeedPosition;
 import frc.robot.commands.IntakeCmd;
 import frc.robot.commands.ShooterAuto;
 import frc.robot.commands.ShooterShoot;
+import frc.robot.commands.SwerveWheelCalibration;
 import frc.robot.commands.AutoCommands.IntakeIn;
 import frc.robot.commands.AutoCommands.PreSpeedup;
 import frc.robot.commands.AutoCommands.SpeakerShoot;
@@ -83,15 +85,7 @@ public class RobotContainer {
 
     joystick.y().whileTrue(drivetrain.applyRequest(() -> brake));
 
-    joystick.b().whileTrue(new DriveToNote(joystick.getHID(), intake, extender, ledSubsystem))
-    .onTrue(runOnce(() -> controlMode = 3).andThen(() -> updateControlStyle()));
-
-    joystick.b().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
-
-    joystick.rightStick().whileTrue(new DriveToNote(joystick.getHID(), intake, extender, ledSubsystem))
-    .onTrue(runOnce(() -> controlMode = 3).andThen(() -> updateControlStyle()));
-
-    joystick.rightStick().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+    joystick.b().or(joystick.rightStick()).onTrue(new DriveToNote(drivetrain, objectDetection, joystick.getHID(), intake, extender, ledSubsystem));
 
     joystick.leftBumper().onTrue(runOnce(() -> controlMode = 1).andThen(() -> updateControlStyle()));
     joystick.leftBumper().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
@@ -108,11 +102,32 @@ public class RobotContainer {
 
     joystick.rightTrigger(0.3).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
 
-    joystick.pov(180).onTrue(new GoToFeedPosition(ledSubsystem));
+    /*joystick.pov(180).onTrue(new GoToFeedPosition(ledSubsystem));
 
     joystick.pov(0).whileTrue(new FeedAuto(shooter, intake, extender, shooterPivot, joystick.getHID()))
     .onTrue(runOnce(() -> controlMode = 4).andThen(() -> updateControlStyle()));
-    joystick.pov(0).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+    joystick.pov(0).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));*/
+
+    joystick.pov(0).whileTrue(shooter.sysIdQuasistatic(Direction.kForward));
+    joystick.pov(90).whileTrue(shooter.sysIdQuasistatic(Direction.kReverse));
+    joystick.pov(180).whileTrue(shooter.sysIdDynamic(Direction.kForward));
+    joystick.pov(270).whileTrue(shooter.sysIdDynamic(Direction.kReverse));
+
+    // HALILI TESTLER
+    /*
+    joystick.pov(0).whileTrue(drivetrain.runDriveQuasiTest(Direction.kForward));
+    joystick.pov(90).whileTrue(drivetrain.runDriveQuasiTest(Direction.kReverse));
+    joystick.pov(180).whileTrue(drivetrain.runDriveDynamTest(Direction.kForward));
+    joystick.pov(270).whileTrue(drivetrain.runDriveDynamTest(Direction.kReverse));
+    joystick.pov(0).whileTrue(drivetrain.runSteerQuasiTest(Direction.kForward));
+    joystick.pov(90).whileTrue(drivetrain.runSteerQuasiTest(Direction.kReverse));
+    joystick.pov(180).whileTrue(drivetrain.runSteerDynamTest(Direction.kForward));
+    joystick.pov(270).whileTrue(drivetrain.runSteerDynamTest(Direction.kReverse));
+     */
+    joystick.leftStick().whileTrue(drivetrain.runDriveSlipTest());
+    joystick.back().whileTrue(new SwerveWheelCalibration(drivetrain));
+    // HALILI TESTLER BİTİŞ
+
 
     // reset the field-centric heading on menu button
     joystick.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldRelative()));
@@ -242,10 +257,6 @@ public class RobotContainer {
         controlStyle = () -> drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
         .withVelocityY(-joystick.getLeftX() * MaxSpeed)
         .withRotationalRate(GlobalVariables.getInstance().getSpeakerAngle(drivetrain.getState().Pose));
-        break;
-      case 3:
-        controlStyle = () -> robotOriented.withVelocityX(-0.2 * TunerConstants.kSpeedAt12VoltsMps)
-        .withRotationalRate(GlobalVariables.getInstance().getObjectAngle(objectDetection.getTX()));
         break;
       case 4:
         controlStyle = () -> drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)

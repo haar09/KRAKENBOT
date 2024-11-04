@@ -12,10 +12,14 @@ import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.units.Measure;
+import edu.wpi.first.units.Voltage;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -25,10 +29,16 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.GlobalVariables;
 import frc.robot.generated.TunerConstants;
+import frc.robot.util.ModifiedSignalLogger;
+import frc.robot.util.SwerveVoltageRequest;
+
+import static edu.wpi.first.units.Units.*;
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements
@@ -94,15 +104,16 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public void periodic() {
         if (GlobalVariables.getInstance().alliance != null) {
             if (GlobalVariables.getInstance().alliance == Alliance.Red) {
-                kSpeakerApriltagPose = VisionConstants.kTagLayout.getTagPose(4).get().getTranslation().toTranslation2d();
+                kSpeakerApriltagPose = VisionConstants.RedSpeakerPose;
             } else {
-                kSpeakerApriltagPose = VisionConstants.kTagLayout.getTagPose(7).get().getTranslation().toTranslation2d();
+                kSpeakerApriltagPose = VisionConstants.BlueSpeakerPose;
             }
         } else {
                 kSpeakerApriltagPose = new Translation2d(1000,1000);
         }
-        speakerDistance = kSpeakerApriltagPose.minus(new Translation2d(this.getState().Pose.getX(), 5.55+(this.getState().Pose.getY()-5.55)*0.1)).getNorm();
-        
+        //speakerDistance = kSpeakerApriltagPose.minus(this.getState().Pose.getTranslation()).getNorm(); 6328 neden alttakini kullanıyor 
+        speakerDistance = new Pose2d(this.getState().Pose.getTranslation().unaryMinus(), this.getState().Pose.getRotation().unaryMinus())
+        .transformBy(new Transform2d(kSpeakerApriltagPose, new Rotation2d())).getTranslation().getNorm();
 
         GlobalVariables.getInstance().speakerDistance = speakerDistance;
         SmartDashboard.putNumber("speakerDistance", speakerDistance);   
@@ -128,12 +139,15 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         return m_kinematics.toChassisSpeeds(getState().ModuleStates);
     }
 
-    private void configurePathPlanner() {
+    public double getDriveBaseRadius() {
         double driveBaseRadius = 0;
         for (var moduleLocation : m_moduleLocations) {
             driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
         }
+        return driveBaseRadius;
+    }
 
+    private void configurePathPlanner() {
         AutoBuilder.configureHolonomic(
             ()->this.getState().Pose, // Supplier of current robot pose
             this::seedFieldRelative,  // Consumer for seeding pose against auto
@@ -142,7 +156,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
             new HolonomicPathFollowerConfig(new PIDConstants(AutoConstants.kPXYController, 0, 0),
                                             new PIDConstants(AutoConstants.kPThetaController, 0, 0),
                                             TunerConstants.kSpeedAt12VoltsMps,
-                                            driveBaseRadius,
+                                            getDriveBaseRadius(),
                                             new ReplanningConfig()),
             () -> {
                     // Boolean supplier that controls when the path will be mirrored for the red alliance
@@ -156,5 +170,56 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
                     return false;
             },
             this); // Subsystem for requirements
+    }
+
+    private SwerveVoltageRequest driveVoltageRequest = new SwerveVoltageRequest(true);
+
+    private SysIdRoutine m_driveSysIdRoutine =
+    new SysIdRoutine(
+        new SysIdRoutine.Config(null, null, null, ModifiedSignalLogger.logState()),
+        new SysIdRoutine.Mechanism(
+            (Measure<Voltage> volts) -> setControl(driveVoltageRequest.withVoltage(volts.in(Volts))),
+            null,
+            this));
+
+    private SwerveVoltageRequest steerVoltageRequest = new SwerveVoltageRequest(false);
+
+    private SysIdRoutine m_steerSysIdRoutine =
+    new SysIdRoutine(
+        new SysIdRoutine.Config(null, null, null, ModifiedSignalLogger.logState()),
+        new SysIdRoutine.Mechanism(
+            (Measure<Voltage> volts) -> setControl(steerVoltageRequest.withVoltage(volts.in(Volts))),
+            null,
+            this));
+
+    private SysIdRoutine m_slipSysIdRoutine =
+    new SysIdRoutine(
+        new SysIdRoutine.Config(Volts.of(0.25).per(Seconds.of(1)), null, null, ModifiedSignalLogger.logState()),
+        new SysIdRoutine.Mechanism(
+            (Measure<Voltage> volts) -> setControl(driveVoltageRequest.withVoltage(volts.in(Volts))),
+            null,
+            this));
+    
+    public Command runDriveQuasiTest(Direction direction)
+    {
+        return m_driveSysIdRoutine.quasistatic(direction);
+    }
+
+    public Command runDriveDynamTest(SysIdRoutine.Direction direction) {
+        return m_driveSysIdRoutine.dynamic(direction);
+    }
+
+    public Command runSteerQuasiTest(Direction direction)
+    {
+        return m_steerSysIdRoutine.quasistatic(direction);
+    }
+
+    public Command runSteerDynamTest(SysIdRoutine.Direction direction) {
+        return m_steerSysIdRoutine.dynamic(direction);
+    }
+
+    public Command runDriveSlipTest()
+    {
+        return m_slipSysIdRoutine.quasistatic(SysIdRoutine.Direction.kForward);
     }
 }

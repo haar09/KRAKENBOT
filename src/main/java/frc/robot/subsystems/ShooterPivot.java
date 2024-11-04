@@ -4,36 +4,32 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
-import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkBase.IdleMode;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ShooterConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.util.NEO;
 
 public class ShooterPivot extends SubsystemBase{
     
-    private final CANSparkMax pivotMotor;
+    private final NEO pivotMotor;
 
     private final CANcoder absoluteEncoder;
 
     private final PIDController anglePidController;
 
     public ShooterPivot() {
-        pivotMotor = new CANSparkMax(ShooterConstants.kPivotMotorId, CANSparkMax.MotorType.kBrushless);
+        pivotMotor = new NEO(ShooterConstants.kPivotMotorId, ShooterConstants.kPivotMotorReversed, IdleMode.kBrake);
         absoluteEncoder = new CANcoder(ShooterConstants.kAbsoluteEncoderId);
-
-        pivotMotor.setInverted(ShooterConstants.kPivotMotorReversed);
-        pivotMotor.setIdleMode(CANSparkMax.IdleMode.kBrake);
 
         CANcoderConfiguration config = new CANcoderConfiguration();
         config.MagnetSensor.MagnetOffset = ShooterConstants.kAbsoluteEncoderOffset;
         config.MagnetSensor.AbsoluteSensorRange = AbsoluteSensorRangeValue.Signed_PlusMinusHalf;
         config.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
         absoluteEncoder.getConfigurator().apply(config);
-
-        pivotMotor.burnFlash();
 
         anglePidController = new PIDController(ShooterConstants.kAngleP, ShooterConstants.kAngleI, ShooterConstants.kAngleD);
         anglePidController.setTolerance(ShooterConstants.kAngleToleranceRad);
@@ -54,7 +50,7 @@ public class ShooterPivot extends SubsystemBase{
     }
 
     public double getAbsolutePosition(){
-        return (absoluteEncoder.getPosition().getValueAsDouble() * 360);
+        return (absoluteEncoder.getAbsolutePosition().getValueAsDouble() * 360);
     }
 
     public void resetEncoders(){

@@ -27,4 +27,8 @@ public class ObjectDetection extends SubsystemBase{
         }
         return tx;
     }
+
+    public boolean targetValid() {
+       return result.hasTargets();
+    }
 }

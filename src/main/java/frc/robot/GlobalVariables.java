@@ -23,8 +23,7 @@ public class GlobalVariables {
         speakerDistance = 0;
         alliance = null;
         thetaController.enableContinuousInput(0, 360);
-        thetaController.setTolerance(1.5);
-        thetaController2.enableContinuousInput(0, 360);
+        thetaController.setTolerance(1.1);
     }
 
     public void isDetected(boolean detected, int index) {
@@ -52,17 +51,11 @@ public class GlobalVariables {
     
     public double getSpeakerAngle(Pose2d swervePose) {
         if (DriverStation.getAlliance().get() == Alliance.Red) {
-            kSpeakerApriltagPose = VisionConstants.kTagLayout.getTagPose(4).get().getTranslation().toTranslation2d().minus(new Translation2d(0.1, 0));            
+            kSpeakerApriltagPose = VisionConstants.RedSpeakerPose;            
         } else {
-            kSpeakerApriltagPose = VisionConstants.kTagLayout.getTagPose(7).get().getTranslation().toTranslation2d().plus(new Translation2d(0.1, 0));        
+            kSpeakerApriltagPose = VisionConstants.BlueSpeakerPose;
         }
         return thetaController.calculate(swervePose.getRotation().getDegrees() ,kSpeakerApriltagPose.minus(swervePose.getTranslation()).getAngle().getDegrees());
-    }
-
-    private PIDController thetaController2 = new PIDController(PIDConstants.kPObjectRotate, 0, PIDConstants.kDObjectRotate);
-
-    public double getObjectAngle(double angle){
-        return thetaController2.calculate(angle);
     }
 
     double feed_rot;

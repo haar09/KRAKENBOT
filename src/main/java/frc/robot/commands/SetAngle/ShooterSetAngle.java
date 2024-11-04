@@ -22,8 +22,9 @@ public class ShooterSetAngle extends Command{
         m_ShooterPivot.setDesiredAngle(SmartDashboard.getNumber("customAngle", VisionConstants.y_ArmAngle[0]));
     }
 
+    @Override
     public void end(boolean interrupted) {
-        m_ShooterPivot.setDesiredAngle(0);
+        m_ShooterPivot.stop();
     }
 
     @Override

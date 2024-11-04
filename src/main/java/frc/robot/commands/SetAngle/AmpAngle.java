@@ -20,9 +20,10 @@ public class AmpAngle extends Command{
     public void execute() {
         m_ShooterPivot.setDesiredAngle(Constants.VisionConstants.kAmpAngle);
     }
-
+    
+    @Override
     public void end(boolean interrupted) {
-        m_ShooterPivot.setDesiredAngle(0);
+        m_ShooterPivot.stop();
     }
 
     @Override

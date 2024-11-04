@@ -22,8 +22,9 @@ public class ShooterAutoAngle extends Command{
         m_ShooterPivot.setDesiredAngle(GlobalVariables.getInstance().speakerToAngle());
     }
 
+    @Override
     public void end(boolean interrupted) {
-        m_ShooterPivot.setDesiredAngle(0);
+        m_ShooterPivot.stop();
     }
 
     @Override

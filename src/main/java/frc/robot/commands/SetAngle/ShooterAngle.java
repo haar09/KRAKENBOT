@@ -21,8 +21,9 @@ public class ShooterAngle extends Command{
         m_ShooterPivot.setDesiredAngle(VisionConstants.y_ArmAngle[0]); //subwoofer dibi
     }
 
+    @Override
     public void end(boolean interrupted) {
-        m_ShooterPivot.setDesiredAngle(0);
+        m_ShooterPivot.stop();
     }
 
     @Override

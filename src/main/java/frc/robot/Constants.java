@@ -8,6 +8,9 @@ import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.interpolation.UnivariateInterpolator;
 
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
+import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.pathplanner.lib.path.PathConstraints;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -16,6 +19,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -44,6 +48,9 @@ public final class Constants {
     public static final AprilTagFieldLayout kTagLayout =
                 AprilTagFields.kDefaultField.loadAprilTagLayoutField();
 
+    public static final Translation2d RedSpeakerPose = kTagLayout.getTagPose(4).get().getTranslation().toTranslation2d().minus(new Translation2d(0.1, 0));
+    public static final Translation2d BlueSpeakerPose = kTagLayout.getTagPose(7).get().getTranslation().toTranslation2d().plus(new Translation2d(0.1, 0));
+
     public static final double x_DistanceToSpeaker[] = {0   , 1.3 , 1.5 , 2   , 2.5 , 3   , 100000};
     public static final double y_ArmAngle[] =          {31  , 31  , 22  , 16  , 10  , 6.7   , 0};
     public static final UnivariateInterpolator angleInterpolator = new SplineInterpolator();
@@ -52,7 +59,7 @@ public final class Constants {
     public static final double kFeedAngle = 4;
     public static final double kAmpAngle = 22;
 
-    public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.3, 0.3, 5);
+    public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.3, 0.3, 999999);
     public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.25, 0.25, 3);
   }
 
@@ -62,6 +69,8 @@ public final class Constants {
 
     public static final double kPObjectRotate = 0.18;
     public static final double kDObjectRotate = 0;
+
+    public static final double kPObjectSpeed = 0.1;
   }
 
   public static class ShooterConstants{
@@ -91,7 +100,7 @@ public final class Constants {
     public static final boolean kShooterMotorLeftReversed = false;
     public static final boolean kShooterMotorRightReversed = true; 
   
-    /*public static final TalonFXConfiguration leftMotorConfig = new TalonFXConfiguration();
+    public static final TalonFXConfiguration leftMotorConfig = new TalonFXConfiguration();
 
     // set slot 0 gains
     private static final Slot0Configs left_slot0Configs;
@@ -122,10 +131,10 @@ public final class Constants {
 
     static {
       right_slot0Configs = rightMotorConfig.Slot0;
-      right_slot0Configs.kS = 0.25; // Add 0.25 V output to overcome static friction
-      right_slot0Configs.kV = 0.12; // A velocity target of 1 rps results in 0.12 V output
-      right_slot0Configs.kA = 0.01; // An acceleration of 1 rps/s requires 0.01 V output
-      right_slot0Configs.kP = 0.11; // An error of 1 rps results in 0.11 V output
+      right_slot0Configs.kS = 0; // Add 0.25 V output to overcome static friction
+      right_slot0Configs.kV = 0; // A velocity target of 1 rps results in 0.12 V output
+      right_slot0Configs.kA = 0; // An acceleration of 1 rps/s requires 0.01 V output
+      right_slot0Configs.kP = 0; // An error of 1 rps results in 0.11 V output
       right_slot0Configs.kI = 0; // no output for integrated error
       right_slot0Configs.kD = 0; // no output for error derivative 
     }
@@ -137,7 +146,7 @@ public final class Constants {
       right_motionMagicConfigs = rightMotorConfig.MotionMagic;
       right_motionMagicConfigs.MotionMagicAcceleration = 400; // Target acceleration of 400 rps/s (0.25 seconds to max)
       right_motionMagicConfigs.MotionMagicJerk = 4000; // Target jerk of 4000 rps/s/s (0.1 seconds)
-    }*/
+    }
 
     public static final double kSpeakerSpeedLeft = 0.87;
     public static final double kSpeakerSpeedRight = 0.8;
