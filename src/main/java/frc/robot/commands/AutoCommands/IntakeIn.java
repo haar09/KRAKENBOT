@@ -3,8 +3,8 @@ package frc.robot.commands.AutoCommands;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.IntakextenderConstants;
 import frc.robot.GlobalVariables;
-import frc.robot.subsystems.Extender;
 import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.extender.Extender;
 
 public class IntakeIn extends Command{
     private final Intake intake;

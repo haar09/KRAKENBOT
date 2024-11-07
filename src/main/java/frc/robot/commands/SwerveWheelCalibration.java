@@ -69,10 +69,10 @@ public class SwerveWheelCalibration extends Command {
         Units.rotationsToRadians(drivetrain.getModule(2).getDriveMotor().getPosition().getValue()),
         Units.rotationsToRadians(drivetrain.getModule(3).getDriveMotor().getPosition().getValue())
     };
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 2; i++) {
       averageWheelPosition += Math.abs(wheelPositiions[i] - startWheelPositions[i]);
     }
-    averageWheelPosition /= 4.0;
+    averageWheelPosition /= 2.0;
 
     currentEffectiveWheelRadius = (accumGyroYawRads * drivetrain.getDriveBaseRadius()) / averageWheelPosition;
 }

@@ -14,12 +14,14 @@ import static edu.wpi.first.wpilibj2.command.Commands.runOnce;
 
 import java.util.function.Supplier;
 
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -46,13 +48,13 @@ import frc.robot.subsystems.AmpMechanism;
 import frc.robot.subsystems.BeamBreak;
 import frc.robot.subsystems.Climb;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
-import frc.robot.subsystems.Extender;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.OV9281;
 import frc.robot.subsystems.ObjectDetection;
 import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.ShooterPivot;
+import frc.robot.subsystems.extender.Extender;
+import frc.robot.subsystems.pivot.Pivot;
 
 public class RobotContainer {
   private double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
@@ -85,7 +87,9 @@ public class RobotContainer {
 
     joystick.y().whileTrue(drivetrain.applyRequest(() -> brake));
 
-    joystick.b().or(joystick.rightStick()).onTrue(new DriveToNote(drivetrain, objectDetection, joystick.getHID(), intake, extender, ledSubsystem));
+    joystick.b().or(joystick.rightStick()).onTrue(new DriveToNote(drivetrain, objectDetection, joystick.getHID(), ledSubsystem, beamBreak)
+    .alongWith(new IntakeCmd(() -> true, () -> false, () -> false, intake, extender, joystick.getHID(), beamBreak)
+    .until(() -> GlobalVariables.getInstance().extenderFull)));
 
     joystick.leftBumper().onTrue(runOnce(() -> controlMode = 1).andThen(() -> updateControlStyle()));
     joystick.leftBumper().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
@@ -102,16 +106,11 @@ public class RobotContainer {
 
     joystick.rightTrigger(0.3).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
 
-    /*joystick.pov(180).onTrue(new GoToFeedPosition(ledSubsystem));
+    joystick.pov(180).onTrue(new GoToFeedPosition(ledSubsystem));
 
     joystick.pov(0).whileTrue(new FeedAuto(shooter, intake, extender, shooterPivot, joystick.getHID()))
     .onTrue(runOnce(() -> controlMode = 4).andThen(() -> updateControlStyle()));
-    joystick.pov(0).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));*/
-
-    joystick.pov(0).whileTrue(shooter.sysIdQuasistatic(Direction.kForward));
-    joystick.pov(90).whileTrue(shooter.sysIdQuasistatic(Direction.kReverse));
-    joystick.pov(180).whileTrue(shooter.sysIdDynamic(Direction.kForward));
-    joystick.pov(270).whileTrue(shooter.sysIdDynamic(Direction.kReverse));
+    joystick.pov(0).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
 
     // HALILI TESTLER
     /*
@@ -123,8 +122,7 @@ public class RobotContainer {
     joystick.pov(90).whileTrue(drivetrain.runSteerQuasiTest(Direction.kReverse));
     joystick.pov(180).whileTrue(drivetrain.runSteerDynamTest(Direction.kForward));
     joystick.pov(270).whileTrue(drivetrain.runSteerDynamTest(Direction.kReverse));
-     */
-    joystick.leftStick().whileTrue(drivetrain.runDriveSlipTest());
+    joystick.leftStick().whileTrue(drivetrain.runDriveSlipTest());*/
     joystick.back().whileTrue(new SwerveWheelCalibration(drivetrain));
     // HALILI TESTLER BİTİŞ
 
@@ -189,22 +187,24 @@ public class RobotContainer {
   private final ObjectDetection objectDetection;
   private final AmpMechanism ampMechanism;
   private final Climb climb;
-  private final ShooterPivot shooterPivot;
+  private final Pivot shooterPivot;
+  private final BeamBreak beamBreak;
 
-  private SendableChooser<Command> autoChooser;
+  private LoggedDashboardChooser<Command> autoChooser;
 
   public RobotContainer() {
     ledSubsystem = new LEDSubsystem();
-    extender = new Extender();
+    extender = Extender.create();
     intake = new Intake();
     shooter = new Shooter(ledSubsystem);    
-    shooterPivot = new ShooterPivot();
+    shooterPivot = Pivot.create();
     objectDetection = new ObjectDetection();
     ampMechanism = new AmpMechanism();
     climb = new Climb();
 
-    new OV9281(drivetrain);
-    new BeamBreak();
+    new OV9281(drivetrain, "Arducam_OV9281_USB_Camera_001", VisionConstants.kRobotToCam1);
+    new OV9281(drivetrain, "Arducam_OV9281_USB_Camera_002", VisionConstants.kRobotToCam2);
+    beamBreak = new BeamBreak();
 
     intake.setDefaultCommand(new IntakeCmd(        
       () -> joystick.getLeftTriggerAxis() > IntakextenderConstants.kIntakeDeadband,
@@ -212,7 +212,8 @@ public class RobotContainer {
       () -> joystick.getHID().getXButton(),
       intake,
       extender,
-      joystick.getHID()
+      joystick.getHID(),
+      beamBreak
     ));
 
     ampMechanism.setDefaultCommand(
@@ -236,12 +237,12 @@ public class RobotContainer {
 
     configureBindings();
 
-    autoChooser = AutoBuilder.buildAutoChooser();
-    SmartDashboard.putData("Auto Chooser", autoChooser);
+    autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
   }
 
   private void updateControlStyle() {
     SmartDashboard.putNumber("Control Mode", controlMode);
+    Logger.recordOutput("Drive/Control Mode", controlMode);
     switch (controlMode) {
       case 0:
         controlStyle = () -> drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
@@ -271,6 +272,6 @@ public class RobotContainer {
   }
 
   public Command getAutonomousCommand() {
-    return autoChooser.getSelected();
+    return autoChooser.get();
   }
 }

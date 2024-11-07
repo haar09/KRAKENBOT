@@ -1,14 +1,16 @@
 package frc.robot.commands.SetAngle;
 
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import org.littletonrobotics.junction.networktables.LoggedDashboardNumber;
+
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.VisionConstants;
-import frc.robot.subsystems.ShooterPivot;
+import frc.robot.subsystems.pivot.Pivot;
 
 public class ShooterSetAngle extends Command{
-    private final ShooterPivot m_ShooterPivot;
+    private final Pivot m_ShooterPivot;
+    private final LoggedDashboardNumber customAngle = new LoggedDashboardNumber("customAngle", VisionConstants.y_ArmAngle[0]);
 
-    public ShooterSetAngle(ShooterPivot shooter) {
+    public ShooterSetAngle(Pivot shooter) {
         this.m_ShooterPivot = shooter;
         addRequirements(m_ShooterPivot);
     }
@@ -19,7 +21,7 @@ public class ShooterSetAngle extends Command{
 
     @Override
     public void execute() {
-        m_ShooterPivot.setDesiredAngle(SmartDashboard.getNumber("customAngle", VisionConstants.y_ArmAngle[0]));
+        m_ShooterPivot.setDesiredAngle(customAngle.get());
     }
 
     @Override

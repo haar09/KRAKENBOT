@@ -6,6 +6,7 @@ import frc.robot.Constants.VisionConstants;
 
 import java.util.Optional;
 
+import org.littletonrobotics.junction.Logger;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
@@ -14,76 +15,66 @@ import org.photonvision.targeting.PhotonPipelineResult;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import java.util.ArrayList;
+import java.util.List;
 
 public class OV9281 extends SubsystemBase{
-    private final PhotonCamera camera1, camera2;
-    private PhotonPipelineResult result1, result2;
-    private final PhotonPoseEstimator photonEstimator1, photonEstimator2;
+    private final PhotonCamera camera;
+    private PhotonPipelineResult result;
+    private final PhotonPoseEstimator photonEstimator;
     private double lastEstTimestamp = 0;
-    private EstimatedRobotPose visionEst1, visionEst2;
+    private EstimatedRobotPose visionEst;
     private final CommandSwerveDrivetrain drivetrain;
+    private final String cameraName;
+    public List<Pose3d> poseList = new ArrayList<>();
 
-    public OV9281(CommandSwerveDrivetrain drivetrain) {
+    public OV9281(CommandSwerveDrivetrain drivetrain, String cameraName, Transform3d robotToCamera) {
         this.drivetrain = drivetrain;
+        this.cameraName = cameraName;
 
-        camera1 = new PhotonCamera("Arducam_OV9281_USB_Camera_001");
-        camera2 = new PhotonCamera("Arducam_OV9281_USB_Camera_002");
+        camera = new PhotonCamera(cameraName);
 
-        result1 = camera1.getLatestResult();
-        result2 = camera2.getLatestResult();
+        result = camera.getLatestResult();
 
-        photonEstimator1 =
+        photonEstimator =
                 new PhotonPoseEstimator(
-                        VisionConstants.kTagLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, camera1, VisionConstants.kRobotToCam1);
-        photonEstimator1.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
-        photonEstimator2 =
-                new PhotonPoseEstimator(
-                        VisionConstants.kTagLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, camera2, VisionConstants.kRobotToCam2);
-        photonEstimator2.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
+                        VisionConstants.kTagLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, camera, robotToCamera);
+        photonEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
         
-        GlobalVariables.getInstance().isDetected(isTargetValid1(), 1);
-        GlobalVariables.getInstance().isDetected(isTargetValid2(), 2);
+        GlobalVariables.getInstance().isDetected(isTargetValid(), cameraName);
     }
 
     @Override
     public void periodic(){
-        result1 = camera1.getLatestResult();
-        result2 = camera2.getLatestResult();
+        result = camera.getLatestResult();
 
-        GlobalVariables.getInstance().isDetected(isTargetValid1(), 1);
-        GlobalVariables.getInstance().isDetected(isTargetValid2(), 2);
+        GlobalVariables.getInstance().isDetected(isTargetValid(), cameraName);
 
-        visionEst1 = getEstimatedGlobalPose1().orElse(null);
-        visionEst2 = getEstimatedGlobalPose2().orElse(null);
+        visionEst = getEstimatedGlobalPose().orElse(null);
 
-        if (visionEst1!= null) {
-        var photonPoseEst = visionEst1.estimatedPose;
+        if (visionEst!= null) {
+        var photonPoseEst = visionEst.estimatedPose;
         var estPose2d = photonPoseEst.toPose2d();
-        var estStdDevs = getEstimationStdDevs(visionEst1.estimatedPose.toPose2d());
-        drivetrain.addVisionMeasurement(estPose2d, visionEst1.timestampSeconds, estStdDevs);
+        var estStdDevs = getEstimationStdDevs(visionEst.estimatedPose.toPose2d());
+        drivetrain.addVisionMeasurement(estPose2d, visionEst.timestampSeconds, estStdDevs);
         }
 
-        if (visionEst2!= null) {
-            var photonPoseEst = visionEst2.estimatedPose;
-            var estPose2d = photonPoseEst.toPose2d();
-            var estStdDevs = getEstimationStdDevs(visionEst2.estimatedPose.toPose2d());
-            drivetrain.addVisionMeasurement(estPose2d, visionEst2.timestampSeconds, estStdDevs);
+        poseList.clear();
+        for (var tgt : result.targets) {
+            poseList.add(VisionConstants.kTagLayout.getTagPose(tgt.getFiducialId()).orElse(null));
         }
+
+        Logger.recordOutput("Vision/"+cameraName+"/Connected", camera.isConnected());
+        Logger.recordOutput("Vision/"+cameraName+"/Poses", poseList.toArray(Pose3d[]::new));
     }
 
-    public Optional<EstimatedRobotPose> getEstimatedGlobalPose1() {
-        var visionEst = photonEstimator1.update();
-        double latestTimestamp = camera1.getLatestResult().getTimestampSeconds();
-        boolean newResult = Math.abs(latestTimestamp - lastEstTimestamp) > 1e-5;
-        if (newResult) lastEstTimestamp = latestTimestamp;
-        return visionEst;
-    }
-
-    public Optional<EstimatedRobotPose> getEstimatedGlobalPose2() {
-        var visionEst = photonEstimator2.update();
-        double latestTimestamp = camera2.getLatestResult().getTimestampSeconds();
+    public Optional<EstimatedRobotPose> getEstimatedGlobalPose() {
+        var visionEst = photonEstimator.update();
+        double latestTimestamp = camera.getLatestResult().getTimestampSeconds();
         boolean newResult = Math.abs(latestTimestamp - lastEstTimestamp) > 1e-5;
         if (newResult) lastEstTimestamp = latestTimestamp;
         return visionEst;
@@ -91,11 +82,11 @@ public class OV9281 extends SubsystemBase{
 
     public Matrix<N3, N1> getEstimationStdDevs(Pose2d estimatedPose) {
         var estStdDevs = VisionConstants.kSingleTagStdDevs;
-        var targets = result1.getTargets();
+        var targets = result.getTargets();
         int numTags = 0;
         double avgDist = 0;
         for (var tgt : targets) {
-            var tagPose = photonEstimator1.getFieldTags().getTagPose(tgt.getFiducialId());
+            var tagPose = photonEstimator.getFieldTags().getTagPose(tgt.getFiducialId());
             if (tagPose.isEmpty()) continue;
             numTags++;
             avgDist +=
@@ -113,11 +104,7 @@ public class OV9281 extends SubsystemBase{
         return estStdDevs;
     }
 
-    public boolean isTargetValid1() {
-        return result1.hasTargets(); 
-    }
-
-    public boolean isTargetValid2() {
-        return result2.hasTargets(); 
+    public boolean isTargetValid() {
+        return result.hasTargets(); 
     }
 }

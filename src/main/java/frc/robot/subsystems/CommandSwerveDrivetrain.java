@@ -2,6 +2,8 @@ package frc.robot.subsystems;
 
 import java.util.function.Supplier;
 
+import org.littletonrobotics.junction.Logger;
+
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrainConstants;
@@ -12,9 +14,7 @@ import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.networktables.GenericEntry;
@@ -63,13 +63,6 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
     private final SwerveRequest.ApplyChassisSpeeds autoRequest = new SwerveRequest.ApplyChassisSpeeds();
 
-    public CommandSwerveDrivetrain(SwerveDrivetrainConstants driveTrainConstants, double OdometryUpdateFrequency, SwerveModuleConstants... modules) {
-        super(driveTrainConstants, OdometryUpdateFrequency, modules);
-        if (Utils.isSimulation()) {
-            startSimThread();
-        }
-        configurePathPlanner();
-    }
     public CommandSwerveDrivetrain(SwerveDrivetrainConstants driveTrainConstants, SwerveModuleConstants... modules) {
         super(driveTrainConstants, modules);
         if (Utils.isSimulation()) {
@@ -111,12 +104,12 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         } else {
                 kSpeakerApriltagPose = new Translation2d(1000,1000);
         }
-        //speakerDistance = kSpeakerApriltagPose.minus(this.getState().Pose.getTranslation()).getNorm(); 6328 neden alttakini kullanıyor 
-        speakerDistance = new Pose2d(this.getState().Pose.getTranslation().unaryMinus(), this.getState().Pose.getRotation().unaryMinus())
-        .transformBy(new Transform2d(kSpeakerApriltagPose, new Rotation2d())).getTranslation().getNorm();
+
+        speakerDistance = kSpeakerApriltagPose.minus(this.getState().Pose.getTranslation()).getNorm(); 
 
         GlobalVariables.getInstance().speakerDistance = speakerDistance;
-        SmartDashboard.putNumber("speakerDistance", speakerDistance);   
+        SmartDashboard.putNumber("speakerDistance", speakerDistance);
+        Logger.recordOutput("Drive/Speaker Distance", speakerDistance);
 
         if (!hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
             DriverStation.getAlliance().ifPresent((allianceColor) -> {
@@ -128,11 +121,11 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         }
 
         if (resetPigeon.getBoolean(false)) {
-            this.getPigeon2().setYaw(0);
+            m_pigeon2.setYaw(0);
             resetPigeon.setBoolean(false);
         }
 
-        SmartDashboard.putNumber("SWERVE ANGLE", this.getState().Pose.getRotation().getDegrees());
+        Logger.recordOutput("Drive/Pose", this.getState().Pose);
     }
 
     public ChassisSpeeds getCurrentRobotChassisSpeeds() {

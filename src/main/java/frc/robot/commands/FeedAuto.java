@@ -8,21 +8,21 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.GlobalVariables;
 import frc.robot.Constants.IntakextenderConstants;
-import frc.robot.subsystems.Extender;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.ShooterPivot;
 import frc.robot.subsystems.Shooter.ShooterState;
+import frc.robot.subsystems.extender.Extender;
+import frc.robot.subsystems.pivot.Pivot;
 
 public class FeedAuto extends Command{
     private final Shooter shooter;
     private final Extender extender;
     private final Intake intake;
-    private final ShooterPivot shooterPivot;
+    private final Pivot shooterPivot;
     private boolean ending;
     private final XboxController operatorController;
 
-    public FeedAuto(Shooter shooter, Intake intake,Extender extender, ShooterPivot shooterPivot, XboxController operatorController){
+    public FeedAuto(Shooter shooter, Intake intake,Extender extender, Pivot shooterPivot, XboxController operatorController){
         this.shooter = shooter;
         this.extender = extender;
         this.intake = intake;

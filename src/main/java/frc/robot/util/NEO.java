@@ -102,6 +102,18 @@ public class NEO {
     this(id, reversed, IdleMode.kCoast, 80);
   }
 
+  public boolean isConnected() {
+    return motor.getFirmwareVersion() != 0;
+  }
+
+  public double getAppliedVoltage() {
+    return motor.getBusVoltage() * motor.get();
+  }
+
+  public double getTemperature() {
+    return motor.getMotorTemperature();
+  }
+
   /**
    * Sets the NEO to brake or coast mode.
    *

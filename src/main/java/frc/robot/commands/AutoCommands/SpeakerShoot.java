@@ -6,21 +6,21 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.GlobalVariables;
 import frc.robot.Constants.IntakextenderConstants;
-import frc.robot.subsystems.Extender;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Shooter.ShooterState;
-import frc.robot.subsystems.ShooterPivot;
+import frc.robot.subsystems.extender.Extender;
+import frc.robot.subsystems.pivot.Pivot;
 
 public class SpeakerShoot extends Command{
     private final Shooter shooter;
     private final Extender extender;
     private final Intake intake;
-    private final ShooterPivot m_ShooterPivot;
+    private final Pivot m_ShooterPivot;
     private boolean ending;
     private double desiredAngle;
 
-    public SpeakerShoot(Shooter shooter, ShooterPivot pivot ,Extender extender, Intake intake, double desiredAngle){
+    public SpeakerShoot(Shooter shooter, Pivot pivot ,Extender extender, Intake intake, double desiredAngle){
         this.shooter = shooter;
         this.m_ShooterPivot = pivot;
         this.extender = extender;

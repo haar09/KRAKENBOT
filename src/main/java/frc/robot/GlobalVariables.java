@@ -8,16 +8,20 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.PIDConstants;
 import frc.robot.Constants.VisionConstants;
+import java.util.HashMap;
 
 public class GlobalVariables {
     private static GlobalVariables instance = new GlobalVariables();
     public double customRotateSpeed;
+    
     public boolean extenderFull;
     public double speakerDistance;
+
     public DriverStation.Alliance alliance;
-    public boolean[] detectedList = {false, false, false};
+    public HashMap<String, Boolean> detectedMap;
 
     private GlobalVariables() {
+        detectedMap = new HashMap<>();
         customRotateSpeed = 0;
         extenderFull = false;
         speakerDistance = 0;
@@ -26,13 +30,9 @@ public class GlobalVariables {
         thetaController.setTolerance(1.1);
     }
 
-    public void isDetected(boolean detected, int index) {
-        detectedList[index] = detected;
-        if (detectedList[0] || detectedList[1] || detectedList[2]) {
-            SmartDashboard.putBoolean("Limelight Target", true);
-        } else {
-            SmartDashboard.putBoolean("Limelight Target", false);
-        }
+    public void isDetected(boolean detected, String cameraName) {
+        detectedMap.put(cameraName, detected);
+        SmartDashboard.putBoolean("Limelight Target", detectedMap.values().stream().anyMatch(Boolean::booleanValue));
     }
 
     public double speakerToAngle() {

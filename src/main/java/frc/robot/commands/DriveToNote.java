@@ -8,11 +8,9 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.GlobalVariables;
 import frc.robot.Constants.PIDConstants;
+import frc.robot.subsystems.BeamBreak;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
-import frc.robot.subsystems.Extender;
-import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.ObjectDetection;
 import java.util.ArrayList;
@@ -20,9 +18,8 @@ import java.util.ArrayList;
 public class DriveToNote extends Command{
         
     private final XboxController driverJoystick;
-    private final Intake intake;
-    private final Extender extender;
     private final LEDSubsystem ledSubsystem;
+    private final BeamBreak beamBreak;
     private final CommandSwerveDrivetrain drivetrain;
     private final ObjectDetection objectDetection;
     private ArrayList<Boolean> m_targetList;
@@ -34,14 +31,12 @@ public class DriveToNote extends Command{
       .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want r-centric driving in open loop
 
     public DriveToNote(
-    CommandSwerveDrivetrain drivetrain, ObjectDetection objectDetection, XboxController driverController,
-    Intake intake, Extender extender, LEDSubsystem ledSubsystem){
+    CommandSwerveDrivetrain drivetrain, ObjectDetection objectDetection, XboxController driverController, LEDSubsystem ledSubsystem, BeamBreak beamBreak){
         this.drivetrain = drivetrain;
         this.objectDetection = objectDetection;
         this.driverJoystick = driverController;
-        this.intake = intake;
-        this.extender = extender;
         this.ledSubsystem = ledSubsystem;
+        this.beamBreak = beamBreak;
         thetaController.enableContinuousInput(0, 360);
         m_targetList = new ArrayList<Boolean>(MAX_ENTRIES);
     }
@@ -66,8 +61,6 @@ public class DriveToNote extends Command{
         }
 
         ledSubsystem.isAutodrive = true;
-        
-        new IntakeCmd(() -> true, () -> false, () -> false, intake, extender, driverJoystick).schedule();
 
         if (m_targetList.size() >= MAX_ENTRIES) {
             m_targetList.remove(0);
@@ -75,26 +68,25 @@ public class DriveToNote extends Command{
     }
 
     public boolean isDetected() {
-        /*double positive = 0;
+        double positive = 0;
         for (Boolean target : m_targetList) {
           if (target) {
             positive += 1;
           }
         }
 
-        return positive > 1;*/
-        return true;
+        return positive > 1;
     }
 
     @Override
     public void end(boolean interrupted){
         ledSubsystem.isAutodrive = false;
-        driverJoystick.setRumble(RumbleType.kRightRumble, 0);    
+        driverJoystick.setRumble(RumbleType.kRightRumble, 0);
     }
 
     @Override
     public boolean isFinished(){
-        return !isDetected() || GlobalVariables.getInstance().extenderFull || Timer.getFPGATimestamp() - startTime > 5
+    return !isDetected() || beamBreak.lower_value || Timer.getFPGATimestamp() - startTime > 5
         || (driverJoystick.getBButton() && Timer.getFPGATimestamp() - startTime > 0.3)
         || (driverJoystick.getRightStickButton() && Timer.getFPGATimestamp() - startTime > 0.3);
     }

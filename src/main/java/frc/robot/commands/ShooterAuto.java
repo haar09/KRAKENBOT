@@ -8,23 +8,23 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.GlobalVariables;
 import frc.robot.Constants.IntakextenderConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
-import frc.robot.subsystems.Extender;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.ShooterPivot;
 import frc.robot.subsystems.Shooter.ShooterState;
+import frc.robot.subsystems.extender.Extender;
+import frc.robot.subsystems.pivot.Pivot;
 
 public class ShooterAuto extends Command{
     private final Shooter shooter;
     private final Extender extender;
     private final Intake intake;
     private final CommandSwerveDrivetrain drivetrain;
-    private final ShooterPivot shooterPivot;
+    private final Pivot shooterPivot;
     private boolean ending;
     private final XboxController operatorController;
 
     public ShooterAuto(Shooter shooter, Intake intake,Extender extender,
-    CommandSwerveDrivetrain drivetrain, ShooterPivot shooterPivot, XboxController operatorController){
+    CommandSwerveDrivetrain drivetrain, Pivot shooterPivot, XboxController operatorController){
         this.shooter = shooter;
         this.extender = extender;
         this.intake = intake;
