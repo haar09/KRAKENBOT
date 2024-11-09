@@ -5,31 +5,27 @@ import java.util.function.Supplier;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Constants.IntakextenderConstants;
-import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.Shooter.ShooterState;
-import frc.robot.subsystems.extender.Extender;
+import frc.robot.subsystems.shooter.Shooter;
+import frc.robot.subsystems.shooter.Shooter.ShooterState;
+import frc.robot.subsystems.rollers.Rollers;
+import frc.robot.subsystems.rollers.Rollers.RollerState;
 
 public class ShooterShoot extends Command{
     private final Supplier<Double> rightTrigger;
     private final Shooter shooter;
-    private final Extender extender;
-    private final Intake intake;
+    private final Rollers rollers;
     private boolean ending, amp;
     private final XboxController operatorController;
 
-    public ShooterShoot(Supplier<Double> rightTrigger ,Shooter shooter, Intake intake,Extender extender, Boolean amp, XboxController operatorController){
+    public ShooterShoot(Supplier<Double> rightTrigger ,Shooter shooter, Rollers rollers, Boolean amp, XboxController operatorController){
         this.shooter = shooter;
-        this.extender = extender;
-        this.intake = intake;
+        this.rollers = rollers;
         this.rightTrigger = rightTrigger;
         this.amp = amp;
         this.operatorController = operatorController;
         ending = false;
-        addRequirements(shooter, extender); 
+        addRequirements(shooter); 
     }
 
     private enum State {
@@ -46,18 +42,16 @@ public class ShooterShoot extends Command{
     public void initialize(){
         ending = false;
         state = State.START;
-        shooter.state = ShooterState.IDLE;
-        System.out.println("Shooting");
+        if (amp) {
+            shooter.state = ShooterState.AMP_ACCELERATING;
+        } else {
+            shooter.state = ShooterState.SPEAKER_ACCELERATING;
+        }
     }
 
     @Override
     public void execute() {
         double timeElapsed = Timer.getFPGATimestamp() - startTime;
-        if (amp) {
-            shooter.setAmpSpeed();
-        } else {
-            shooter.setSpeakerSpeed();
-        }
 
         switch (state) {
             case START:
@@ -79,29 +73,20 @@ public class ShooterShoot extends Command{
                 break;
             case EXTEND:
                 if (timeElapsed < 0.1) {
-                    extender.setOutputPercentage(-IntakextenderConstants.kExtenderBackSpeed);
+                    rollers.state = RollerState.PREPARE_FEED;
                 } else {
                     state = State.SHOOT;
                 }
                 break;
             case SHOOT:
                 if (timeElapsed < 2) {
-                    if (amp) {
-                        shooter.setAmpSpeed();
-                    } else {
-                        shooter.setSpeakerSpeed();
-                    }
-                    extender.setOutputPercentage(1);
-                    intake.setOutputPercentage(0.6);
+                    rollers.state = RollerState.FEEDING;
                 } else {
                     state = State.END;
                 }
                 break;
             case END:
                 ending = true;
-                end(false);
-                extender.setOutputPercentage(0);
-                shooter.stopShooter();
                 break;
         }
     }
@@ -110,11 +95,7 @@ public class ShooterShoot extends Command{
     public void end(boolean interrupted){
         state = State.START;
         shooter.state = ShooterState.IDLE;
-        shooter.ledSubsystem.isAccelerating = false;
-        intake.setOutputPercentage(0);
-        extender.setOutputPercentage(0);
-        shooter.stopShooter();    
-        SmartDashboard.putBoolean("shooterReady", false);
+        rollers.state = RollerState.IDLE;
     }
 
     @Override

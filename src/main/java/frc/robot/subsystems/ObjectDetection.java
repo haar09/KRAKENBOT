@@ -1,34 +1,45 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
+import org.littletonrobotics.junction.Logger;
 import org.photonvision.PhotonCamera;
 import org.photonvision.targeting.PhotonPipelineResult;
-import org.photonvision.targeting.PhotonTrackedTarget;
 
 public class ObjectDetection extends SubsystemBase{
     private final PhotonCamera camera;
     private PhotonPipelineResult result;
-    private PhotonTrackedTarget target;
     private double tx;
+    private boolean hasTargets;
 
     public ObjectDetection() {        
         camera = new PhotonCamera("ar0234");
 
         result = camera.getLatestResult();
+        hasTargets = false;
+        tx = 0;
     }
 
-    public double getTX() {
+    @Override
+    public void periodic(){
         result = camera.getLatestResult();
+        hasTargets = result.hasTargets();
         if (result.hasTargets()) {
-            target = result.getBestTarget();
-            tx = target.getYaw();
+            tx = result.getBestTarget().getYaw();
         } else {
             tx = 0;
         }
+
+        Logger.recordOutput("Vision/ar0234/Target Valid", hasTargets);
+        Logger.recordOutput("Vision/ar0234/Object TX", tx);
+        Logger.recordOutput("Vision/ar0234/Connected", camera.isConnected());
+    }
+
+    public double getTX() {
         return tx;
     }
 
     public boolean targetValid() {
-       return result.hasTargets();
+       return hasTargets;
     }
 }

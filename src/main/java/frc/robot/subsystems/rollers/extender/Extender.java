@@ -1,11 +1,10 @@
-package frc.robot.subsystems.extender;
+package frc.robot.subsystems.rollers.extender;
 
 import org.littletonrobotics.junction.Logger;
 
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
 
-public class Extender extends SubsystemBase {
+public class Extender {
     private final ExtenderIO io;
     private final ExtenderIOInputsAutoLogged inputs = new ExtenderIOInputsAutoLogged();
 
@@ -17,7 +16,6 @@ public class Extender extends SubsystemBase {
         this.io = io;
     }
 
-    @Override
     public void periodic() {
         io.updateInputs(inputs);
         Logger.processInputs("Extender", inputs);

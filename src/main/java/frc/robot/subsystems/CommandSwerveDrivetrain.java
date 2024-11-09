@@ -133,11 +133,12 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     }
 
     public double getDriveBaseRadius() {
-        double driveBaseRadius = 0;
-        for (var moduleLocation : m_moduleLocations) {
-            driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
-        }
-        return driveBaseRadius;
+        return m_moduleLocations[0].getNorm();
+    }
+
+    public double getDriveBaseRadius2() {
+        return m_moduleLocations[2].getNorm();
+
     }
 
     private void configurePathPlanner() {

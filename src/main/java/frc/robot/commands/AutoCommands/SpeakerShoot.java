@@ -1,30 +1,26 @@
 package frc.robot.commands.AutoCommands;
 
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.GlobalVariables;
-import frc.robot.Constants.IntakextenderConstants;
-import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.Shooter.ShooterState;
-import frc.robot.subsystems.extender.Extender;
+import frc.robot.subsystems.shooter.Shooter;
+import frc.robot.subsystems.shooter.Shooter.ShooterState;
 import frc.robot.subsystems.pivot.Pivot;
+import frc.robot.subsystems.rollers.Rollers;
+import frc.robot.subsystems.rollers.Rollers.RollerState;
 
 public class SpeakerShoot extends Command{
     private final Shooter shooter;
-    private final Extender extender;
-    private final Intake intake;
+    private final Rollers rollers;
     private final Pivot m_ShooterPivot;
     private boolean ending;
     private double desiredAngle;
 
-    public SpeakerShoot(Shooter shooter, Pivot pivot ,Extender extender, Intake intake, double desiredAngle){
+    public SpeakerShoot(Shooter shooter, Pivot pivot , Rollers rollers, double desiredAngle){
         this.shooter = shooter;
         this.m_ShooterPivot = pivot;
-        this.extender = extender;
-        this.intake = intake;
+        this.rollers = rollers;
         this.desiredAngle = desiredAngle;
         ending = false; 
     }
@@ -43,14 +39,13 @@ public class SpeakerShoot extends Command{
     public void initialize(){
         ending = false;
         state = State.START;
-        shooter.state = ShooterState.IDLE;
     }
 
     @Override
     public void execute(){
         double timeElapsed = Timer.getFPGATimestamp() - startTime;
 
-        shooter.setSpeakerSpeed();
+        shooter.state = ShooterState.SPEAKER_ACCELERATING;
 
         if (desiredAngle == 0){
         m_ShooterPivot.setDesiredAngle(GlobalVariables.getInstance().speakerToAngle());
@@ -66,27 +61,20 @@ public class SpeakerShoot extends Command{
                 break;
             case EXTEND:
                 if (timeElapsed < 0.1) {
-                    extender.setOutputPercentage(-IntakextenderConstants.kExtenderBackSpeed);
+                    rollers.state = RollerState.PREPARE_FEED;
                 } else {
                     state = State.SHOOT;
                 }
                 break;
             case SHOOT:
-                timeElapsed = Timer.getFPGATimestamp() - startTime;
-                if (timeElapsed < 1) {
-                    shooter.setSpeakerSpeed();
-                    extender.setOutputPercentage(1);
-                    intake.setOutputPercentage(0.6);
+                if (timeElapsed < 1.2) {
+                    rollers.state = RollerState.FEEDING;
                 } else {
                     state = State.END;
                 }
                 break;
             case END:
-                shooter.stopShooter();
                 ending = true;
-                end(false);
-                extender.setOutputPercentage(0);
-                shooter.stopShooter();
                 break;
         }
     }
@@ -95,12 +83,7 @@ public class SpeakerShoot extends Command{
     public void end(boolean interrupted){
         state = State.START;
         shooter.state = ShooterState.IDLE;
-        intake.setOutputPercentage(0);
-        extender.setOutputPercentage(0);
-        shooter.stopShooter();    
-        SmartDashboard.putBoolean("shooterReady", false);
-
-        GlobalVariables.getInstance().customRotateSpeed = 0;
+        rollers.state = RollerState.IDLE;
     }
 
     @Override

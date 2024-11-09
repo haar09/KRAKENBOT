@@ -14,6 +14,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 
@@ -27,6 +28,7 @@ public class SwerveWheelCalibration extends Command {
   private double[] startWheelPositions;
 
   private double currentEffectiveWheelRadius = 0.0;
+  private double currentEffectiveWheelRadius2 = 0.0;
 
   private final SwerveRequest.RobotCentric robotOriented = new SwerveRequest.RobotCentric()
       .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want r-centric driving in open loop
@@ -44,10 +46,10 @@ public class SwerveWheelCalibration extends Command {
     accumGyroYawRads = 0.0;
 
     startWheelPositions = new double[] {
-        Units.rotationsToRadians(drivetrain.getModule(0).getDriveMotor().getPosition().getValue()),
-        Units.rotationsToRadians(drivetrain.getModule(1).getDriveMotor().getPosition().getValue()), 
-        Units.rotationsToRadians(drivetrain.getModule(2).getDriveMotor().getPosition().getValue()),
-        Units.rotationsToRadians(drivetrain.getModule(3).getDriveMotor().getPosition().getValue())
+      Units.rotationsToRadians(drivetrain.getModule(0).getDriveMotor().getPosition().getValue() / TunerConstants.kDriveGearRatio),
+      Units.rotationsToRadians(drivetrain.getModule(1).getDriveMotor().getPosition().getValue() / TunerConstants.kDriveGearRatio), 
+      Units.rotationsToRadians(drivetrain.getModule(2).getDriveMotor().getPosition().getValue() / TunerConstants.kDriveGearRatio),
+      Units.rotationsToRadians(drivetrain.getModule(3).getDriveMotor().getPosition().getValue() / TunerConstants.kDriveGearRatio)
       };
 
       omegaLimiter.reset(0);
@@ -63,18 +65,24 @@ public class SwerveWheelCalibration extends Command {
     accumGyroYawRads += MathUtil.angleModulus(drivetrain.getState().Pose.getRotation().getRadians() - lastGyroYawRads);
     lastGyroYawRads = drivetrain.getState().Pose.getRotation().getRadians();
     double averageWheelPosition = 0.0;
+    double averageWheelPosition2 = 0.0;
     double[] wheelPositiions = new double[] {
-        Units.rotationsToRadians(drivetrain.getModule(0).getDriveMotor().getPosition().getValue()),
-        Units.rotationsToRadians(drivetrain.getModule(1).getDriveMotor().getPosition().getValue()), 
-        Units.rotationsToRadians(drivetrain.getModule(2).getDriveMotor().getPosition().getValue()),
-        Units.rotationsToRadians(drivetrain.getModule(3).getDriveMotor().getPosition().getValue())
-    };
+        Units.rotationsToRadians(drivetrain.getModule(0).getDriveMotor().getPosition().getValue() / TunerConstants.kDriveGearRatio),
+        Units.rotationsToRadians(drivetrain.getModule(1).getDriveMotor().getPosition().getValue() / TunerConstants.kDriveGearRatio), 
+        Units.rotationsToRadians(drivetrain.getModule(2).getDriveMotor().getPosition().getValue() / TunerConstants.kDriveGearRatio),
+        Units.rotationsToRadians(drivetrain.getModule(3).getDriveMotor().getPosition().getValue() / TunerConstants.kDriveGearRatio)
+    }; //1.95872
     for (int i = 0; i < 2; i++) {
       averageWheelPosition += Math.abs(wheelPositiions[i] - startWheelPositions[i]);
     }
     averageWheelPosition /= 2.0;
+    for (int i = 2; i < 4; i++) {
+      averageWheelPosition2 += Math.abs(wheelPositiions[i] - startWheelPositions[i]);
+    }
+    averageWheelPosition2 /= 2.0;
 
     currentEffectiveWheelRadius = (accumGyroYawRads * drivetrain.getDriveBaseRadius()) / averageWheelPosition;
+    currentEffectiveWheelRadius2 = (accumGyroYawRads * drivetrain.getDriveBaseRadius2()) / averageWheelPosition2;
 }
 
   @Override
@@ -84,7 +92,7 @@ public class SwerveWheelCalibration extends Command {
     } else {
       System.out.println(
           "Effective Wheel Radius: "
-              + Units.metersToInches(currentEffectiveWheelRadius)
+              + Units.metersToInches(currentEffectiveWheelRadius+currentEffectiveWheelRadius2)/2
               + " inches");
     }
   }

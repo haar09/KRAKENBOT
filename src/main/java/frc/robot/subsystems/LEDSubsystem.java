@@ -50,6 +50,7 @@ public class LEDSubsystem extends SubsystemBase {
 
     public boolean isLowBattery = false;
     public boolean isAutodrive = false;
+    public boolean isIntaking = false;
     public boolean isNote = false;
     public boolean isInRange = false;
     public boolean isAccelerating = false;
@@ -63,10 +64,12 @@ public class LEDSubsystem extends SubsystemBase {
             solid(Color.kGreen);
         } else if (isAccelerating) {
             blink(Color.kGreen);
-        } else if (isInRange) {
-            solid(Color.kBlue);
+        } else if (isIntaking) {
+            blink(new Color(222, 49, 0));
         } else if (isAutodrive) {
             blink(Color.kRed);
+        } else if (isInRange) {
+            solid(Color.kBlue);
         } else if (isNote) {
             solid(new Color(222, 49, 0));
         } else if (isLowBattery) {

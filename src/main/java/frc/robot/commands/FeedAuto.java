@@ -7,29 +7,26 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.GlobalVariables;
-import frc.robot.Constants.IntakextenderConstants;
-import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.Shooter.ShooterState;
-import frc.robot.subsystems.extender.Extender;
+import frc.robot.subsystems.shooter.Shooter;
+import frc.robot.subsystems.shooter.Shooter.ShooterState;
 import frc.robot.subsystems.pivot.Pivot;
+import frc.robot.subsystems.rollers.Rollers;
+import frc.robot.subsystems.rollers.Rollers.RollerState;
 
 public class FeedAuto extends Command{
     private final Shooter shooter;
-    private final Extender extender;
-    private final Intake intake;
+    private final Rollers rollers;
     private final Pivot shooterPivot;
     private boolean ending;
     private final XboxController operatorController;
 
-    public FeedAuto(Shooter shooter, Intake intake,Extender extender, Pivot shooterPivot, XboxController operatorController){
+    public FeedAuto(Shooter shooter, Rollers rollers, Pivot shooterPivot, XboxController operatorController){
         this.shooter = shooter;
-        this.extender = extender;
-        this.intake = intake;
+        this.rollers = rollers;
         this.shooterPivot = shooterPivot;
         this.operatorController = operatorController;
         ending = false;
-        addRequirements(shooter, extender); 
+        addRequirements(shooter); 
     }
 
     private enum State {
@@ -46,7 +43,6 @@ public class FeedAuto extends Command{
     public void initialize(){
         ending = false;
         state = State.START;
-        shooter.state = ShooterState.IDLE;
     }
 
     @Override
@@ -54,7 +50,7 @@ public class FeedAuto extends Command{
         double timeElapsed = Timer.getFPGATimestamp() - startTime;
 
         if (GlobalVariables.getInstance().extenderFull) {
-            shooter.setSpeakerSpeed();
+            shooter.state = ShooterState.SPEAKER_ACCELERATING;
         } else {
             operatorController.setRumble(RumbleType.kBothRumble, 1);
             if (state == State.START) {
@@ -75,25 +71,20 @@ public class FeedAuto extends Command{
                 break;
             case EXTEND:
                 if (timeElapsed < 0.1) {
-                    extender.setOutputPercentage(-IntakextenderConstants.kExtenderBackSpeed);
+                    rollers.state = RollerState.PREPARE_FEED;
                 } else {
                     state = State.SHOOT;
                 }
                 break;
             case SHOOT:
                 if (timeElapsed < 2) {
-                    shooter.setSpeakerSpeed();
-                    extender.setOutputPercentage(1);
-                    intake.setOutputPercentage(0.6);
+                    rollers.state = RollerState.FEEDING;
                 } else {
                     state = State.END;
                 }
                 break;
             case END:
                 ending = true;
-                end(false);
-                extender.setOutputPercentage(0);
-                shooter.stopShooter();
                 break;
         }
     }
@@ -102,12 +93,8 @@ public class FeedAuto extends Command{
     public void end(boolean interrupted){
         state = State.START;
         shooter.state = ShooterState.IDLE;
-        intake.setOutputPercentage(0);
-        extender.setOutputPercentage(0);
-        shooter.stopShooter();    
+        rollers.state = RollerState.IDLE;
         SmartDashboard.putBoolean("shooterReady", false);
-
-        GlobalVariables.getInstance().customRotateSpeed = 0;
     }
 
     @Override

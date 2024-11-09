@@ -148,11 +148,11 @@ public final class Constants {
       right_motionMagicConfigs.MotionMagicJerk = 4000; // Target jerk of 4000 rps/s/s (0.1 seconds)
     }
 
-    public static final double kSpeakerSpeedLeft = 0.87;
-    public static final double kSpeakerSpeedRight = 0.8;
+    public static final double kSpeakerSpeedLeft = 64.3;
+    public static final double kSpeakerSpeedRight = 52.3;
 
-    public static final double kAmpSpeedLeft = 0.32;
-    public static final double kAmpSpeedRight = 0.32;
+    public static final double kAmpSpeedLeft = 21.5;
+    public static final double kAmpSpeedRight = 21.5;
     
     public static final double kVoltageCompensation = 10;
   }

@@ -1,7 +1,7 @@
-package frc.robot.subsystems.extender;
+package frc.robot.subsystems.climb;
 
-public class NoExtender implements ExtenderIO{
-    public NoExtender() {
+public class NoClimb implements ClimbIO{
+    public NoClimb() {
     }
 
     @Override

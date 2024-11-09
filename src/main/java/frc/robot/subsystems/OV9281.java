@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.GlobalVariables;
+import frc.robot.Robot;
 import frc.robot.Constants.VisionConstants;
 
 import java.util.Optional;
@@ -11,11 +12,15 @@ import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
+import org.photonvision.simulation.PhotonCameraSim;
+import org.photonvision.simulation.SimCameraProperties;
+import org.photonvision.simulation.VisionSystemSim;
 import org.photonvision.targeting.PhotonPipelineResult;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -31,12 +36,27 @@ public class OV9281 extends SubsystemBase{
     private final CommandSwerveDrivetrain drivetrain;
     private final String cameraName;
     public List<Pose3d> poseList = new ArrayList<>();
+    private final Pose3d emptyPose = new Pose3d();
+    private final boolean useSim = Robot.isSimulation();
+    private final VisionSystemSim visionSim;
 
     public OV9281(CommandSwerveDrivetrain drivetrain, String cameraName, Transform3d robotToCamera) {
         this.drivetrain = drivetrain;
         this.cameraName = cameraName;
 
         camera = new PhotonCamera(cameraName);
+
+        if(useSim) {
+            visionSim = new VisionSystemSim("01");
+            visionSim.addAprilTags(VisionConstants.kTagLayout);
+            SimCameraProperties cameraProperties = new SimCameraProperties();
+            cameraProperties.setCalibration(1280, 800, Rotation2d.fromDegrees(79));
+            cameraProperties.setFPS(25);
+            PhotonCameraSim camerasim = new PhotonCameraSim(camera, cameraProperties);
+            visionSim.addCamera(camerasim, robotToCamera);
+        } else {
+            visionSim = null;
+        }
 
         result = camera.getLatestResult();
 
@@ -50,6 +70,10 @@ public class OV9281 extends SubsystemBase{
 
     @Override
     public void periodic(){
+        if (useSim) {
+            visionSim.update(drivetrain.getState().Pose);
+        }
+
         result = camera.getLatestResult();
 
         GlobalVariables.getInstance().isDetected(isTargetValid(), cameraName);
@@ -61,6 +85,9 @@ public class OV9281 extends SubsystemBase{
         var estPose2d = photonPoseEst.toPose2d();
         var estStdDevs = getEstimationStdDevs(visionEst.estimatedPose.toPose2d());
         drivetrain.addVisionMeasurement(estPose2d, visionEst.timestampSeconds, estStdDevs);
+        Logger.recordOutput("Vision/"+cameraName+"/Current Estimation", visionEst.estimatedPose);
+        } else {
+            Logger.recordOutput("Vision/"+cameraName+"/Current Estimation", emptyPose);
         }
 
         poseList.clear();

@@ -12,7 +12,6 @@ import java.util.HashMap;
 
 public class GlobalVariables {
     private static GlobalVariables instance = new GlobalVariables();
-    public double customRotateSpeed;
     
     public boolean extenderFull;
     public double speakerDistance;
@@ -22,7 +21,6 @@ public class GlobalVariables {
 
     private GlobalVariables() {
         detectedMap = new HashMap<>();
-        customRotateSpeed = 0;
         extenderFull = false;
         speakerDistance = 0;
         alliance = null;

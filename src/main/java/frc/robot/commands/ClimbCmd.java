@@ -3,7 +3,7 @@ package frc.robot.commands;
 import java.util.function.Supplier;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.Climb;
+import frc.robot.subsystems.climb.Climb;
 
 public class ClimbCmd extends Command{
     private final Climb climb;

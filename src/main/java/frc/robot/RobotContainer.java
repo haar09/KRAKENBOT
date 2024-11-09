@@ -33,28 +33,28 @@ import frc.robot.commands.ClimbCmd;
 import frc.robot.commands.DriveToNote;
 import frc.robot.commands.FeedAuto;
 import frc.robot.commands.GoToFeedPosition;
-import frc.robot.commands.IntakeCmd;
 import frc.robot.commands.ShooterAuto;
 import frc.robot.commands.ShooterShoot;
 import frc.robot.commands.SwerveWheelCalibration;
-import frc.robot.commands.AutoCommands.IntakeIn;
 import frc.robot.commands.AutoCommands.PreSpeedup;
 import frc.robot.commands.AutoCommands.SpeakerShoot;
 import frc.robot.commands.SetAngle.AmpAngle;
 import frc.robot.commands.SetAngle.ShooterAutoAngle;
 import frc.robot.commands.SetAngle.ShooterSetAngle;
 import frc.robot.generated.TunerConstants;
-import frc.robot.subsystems.AmpMechanism;
 import frc.robot.subsystems.BeamBreak;
-import frc.robot.subsystems.Climb;
+import frc.robot.subsystems.climb.Climb;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
-import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.OV9281;
 import frc.robot.subsystems.ObjectDetection;
-import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.extender.Extender;
+import frc.robot.subsystems.ampMechanism.AmpMechanism;
 import frc.robot.subsystems.pivot.Pivot;
+import frc.robot.subsystems.rollers.Rollers;
+import frc.robot.subsystems.rollers.Rollers.RollerState;
+import frc.robot.subsystems.rollers.extender.Extender;
+import frc.robot.subsystems.rollers.intake.Intake;
+import frc.robot.subsystems.shooter.Shooter;
 
 public class RobotContainer {
   private double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
@@ -85,14 +85,18 @@ public class RobotContainer {
   private void configureBindings() {
     updateControlStyle();
 
-    joystick.y().whileTrue(drivetrain.applyRequest(() -> brake));
+    joystick.y().whileTrue(drivetrain.applyRequest(() -> brake).withName("Swerve Brake"));
+
+    joystick.leftTrigger(IntakextenderConstants.kIntakeDeadband).whileTrue(rollers.setStateCommand(RollerState.FLOOR_INTAKING));
+    joystick.a().whileTrue(rollers.setStateCommand(RollerState.EJECTING));
+    joystick.x().whileTrue(rollers.setStateCommand(RollerState.STUCK_INTAKING));
+    joystick.x().and(joystick.a()).whileTrue(rollers.setStateCommand(RollerState.STUCK_EJECTING));
 
     joystick.b().or(joystick.rightStick()).onTrue(new DriveToNote(drivetrain, objectDetection, joystick.getHID(), ledSubsystem, beamBreak)
-    .alongWith(new IntakeCmd(() -> true, () -> false, () -> false, intake, extender, joystick.getHID(), beamBreak)
-    .until(() -> GlobalVariables.getInstance().extenderFull)));
+    .beforeStarting(rollers.setStateCommand(RollerState.FLOOR_INTAKING)));
 
-    joystick.leftBumper().onTrue(runOnce(() -> controlMode = 1).andThen(() -> updateControlStyle()));
-    joystick.leftBumper().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+    joystick.leftBumper().onTrue(runOnce(() -> controlMode = 1).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
+    joystick.leftBumper().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
 
     joystick.rightBumper().onTrue(runOnce(() -> MaxSpeed = TunerConstants.kSpeedAt12VoltsMps * SlowSpeed).andThen(() -> AngularRate = SlowAngularRate)
     .andThen(() -> drive.withDeadband(0.0).withRotationalDeadband(0.0)).andThen(
@@ -101,16 +105,16 @@ public class RobotContainer {
     .andThen(() -> drive.withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1))
     .andThen(() -> robotOriented.withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1)));
 
-    joystick.rightTrigger(0.3).whileTrue(new ShooterAuto(shooter, intake, extender, drivetrain, shooterPivot, joystick.getHID()))
-    .onTrue(runOnce(() -> controlMode = 2).andThen(() -> updateControlStyle()));
+    joystick.rightTrigger(0.3).whileTrue(new ShooterAuto(shooter, rollers, drivetrain, shooterPivot, joystick.getHID()))
+    .onTrue(runOnce(() -> controlMode = 2).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
 
-    joystick.rightTrigger(0.3).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+    joystick.rightTrigger(0.3).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
 
     joystick.pov(180).onTrue(new GoToFeedPosition(ledSubsystem));
 
-    joystick.pov(0).whileTrue(new FeedAuto(shooter, intake, extender, shooterPivot, joystick.getHID()))
-    .onTrue(runOnce(() -> controlMode = 4).andThen(() -> updateControlStyle()));
-    joystick.pov(0).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+    joystick.pov(0).whileTrue(new FeedAuto(shooter, rollers, shooterPivot, joystick.getHID()))
+    .onTrue(runOnce(() -> controlMode = 4).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
+    joystick.pov(0).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
 
     // HALILI TESTLER
     /*
@@ -168,21 +172,22 @@ public class RobotContainer {
     operator.a().whileTrue(new ShooterSetAngle(shooterPivot));
     operator.y().whileTrue(new ShooterAutoAngle(shooterPivot));
 
-    operator.b().onTrue(runOnce(() -> controlMode = 2).andThen(() -> updateControlStyle()));
-    operator.b().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()));
+    operator.b().onTrue(runOnce(() -> controlMode = 2).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
+    operator.b().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
 
     operator.rightBumper().whileTrue(new ShooterShoot(
       () -> operator.getRightTriggerAxis(),
-      shooter, intake, extender, false, operator.getHID()));
+      shooter, rollers, false, operator.getHID()));
 
     operator.leftBumper().whileTrue(new ShooterShoot(
       () -> operator.getRightTriggerAxis(),
-      shooter, intake, extender, true, operator.getHID())); //l1 ve r2
+      shooter, rollers, true, operator.getHID())); //l1 ve r2
     }
 
   private final LEDSubsystem ledSubsystem;
   private final Extender extender;
   private final Intake intake;
+  private final Rollers rollers;
   private final Shooter shooter;
   private final ObjectDetection objectDetection;
   private final AmpMechanism ampMechanism;
@@ -195,26 +200,17 @@ public class RobotContainer {
   public RobotContainer() {
     ledSubsystem = new LEDSubsystem();
     extender = Extender.create();
-    intake = new Intake();
-    shooter = new Shooter(ledSubsystem);    
+    intake = Intake.create();
+    beamBreak = new BeamBreak();
+    rollers = new Rollers(extender, intake, beamBreak, ledSubsystem);
+    shooter = Shooter.create(ledSubsystem);    
     shooterPivot = Pivot.create();
     objectDetection = new ObjectDetection();
-    ampMechanism = new AmpMechanism();
-    climb = new Climb();
+    ampMechanism = AmpMechanism.create();
+    climb = Climb.create();
 
     new OV9281(drivetrain, "Arducam_OV9281_USB_Camera_001", VisionConstants.kRobotToCam1);
     new OV9281(drivetrain, "Arducam_OV9281_USB_Camera_002", VisionConstants.kRobotToCam2);
-    beamBreak = new BeamBreak();
-
-    intake.setDefaultCommand(new IntakeCmd(        
-      () -> joystick.getLeftTriggerAxis() > IntakextenderConstants.kIntakeDeadband,
-      () -> joystick.getHID().getAButton(),
-      () -> joystick.getHID().getXButton(),
-      intake,
-      extender,
-      joystick.getHID(),
-      beamBreak
-    ));
 
     ampMechanism.setDefaultCommand(
       new AmpMechanismCmd(
@@ -230,9 +226,9 @@ public class RobotContainer {
       climb)
     );
 
-    NamedCommands.registerCommand("ShootToSpeakerAuto", new SpeakerShoot(shooter, shooterPivot, extender, intake, 0));
-    NamedCommands.registerCommand("ShootToSpeaker0m", new SpeakerShoot(shooter, shooterPivot, extender, intake, VisionConstants.y_ArmAngle[1]));
-    NamedCommands.registerCommand("IntakeIn", new IntakeIn(intake, extender));
+    NamedCommands.registerCommand("ShootToSpeakerAuto", new SpeakerShoot(shooter, shooterPivot, rollers, 0));
+    NamedCommands.registerCommand("ShootToSpeaker0m", new SpeakerShoot(shooter, shooterPivot, rollers, VisionConstants.y_ArmAngle[1]));
+    NamedCommands.registerCommand("IntakeIn", rollers.setStateCommand(RollerState.FLOOR_INTAKING));
     NamedCommands.registerCommand("AmpSpeed", new PreSpeedup(shooter));
 
     configureBindings();
@@ -268,10 +264,16 @@ public class RobotContainer {
     try {
         drivetrain.getDefaultCommand().cancel();
     } catch(Exception e) {}
-    drivetrain.setDefaultCommand(drivetrain.applyRequest(controlStyle).ignoringDisable(true));
+    drivetrain.setDefaultCommand(drivetrain.applyRequest(controlStyle).ignoringDisable(true).withName("Swerve Command "+controlMode));
   }
 
   public Command getAutonomousCommand() {
     return autoChooser.get();
   }
+
+  /*private Command rumbleDriverController() {
+    return Commands.startEnd(
+      () -> joystick.getHID().setRumble(RumbleType.kBothRumble, 1),
+      () -> joystick.getHID().setRumble(RumbleType.kBothRumble, 0));
+  }*/
 }

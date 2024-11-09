@@ -4,11 +4,17 @@
 
 package frc.robot;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
+
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
+
+import com.ctre.phoenix6.CANBus;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
@@ -56,6 +62,38 @@ public class Robot extends LoggedRobot {
     // Logger.disableDeterministicTimestamps() // See "Deterministic Timestamps" in the "Understanding Data Flow" page
     Logger.start(); // Start logging! No more data receivers, replay sources, or metadata values may be added.
   
+    Map<String, Integer> commandCounts = new HashMap<>();
+    BiConsumer<Command, Boolean> logCommandFunction =
+        (Command command, Boolean active) -> {
+          String name = command.getName();
+          int count = commandCounts.getOrDefault(name, 0) + (active ? 1 : -1);
+          commandCounts.put(name, count);
+          Logger.recordOutput(
+              "CommandsUnique/" + name + "_" + Integer.toHexString(command.hashCode()), active);
+          Logger.recordOutput("CommandsAll/" + name, count > 0);
+        };
+    CommandScheduler.getInstance()
+        .onCommandInitialize(
+            (Command command) -> {
+              if (command.getName() != "SequentialCommandGroup"){
+                logCommandFunction.accept(command, true);
+                }
+              });
+    CommandScheduler.getInstance()
+        .onCommandFinish(
+            (Command command) -> {
+              if (command.getName() != "SequentialCommandGroup"){
+              logCommandFunction.accept(command, false);
+              }
+            });
+    CommandScheduler.getInstance()
+        .onCommandInterrupt(
+            (Command command) -> {
+              if (command.getName() != "SequentialCommandGroup"){
+                logCommandFunction.accept(command, false);
+                }
+            });
+
     m_robotContainer = new RobotContainer();
   }
 
@@ -64,6 +102,15 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().run();
     SmartDashboard.putBoolean("TeleOp", isTeleopEnabled());
     SmartDashboard.putNumber("Battery", RobotController.getBatteryVoltage());
+    if (isReal()) {
+      var canivoreStatus = CANBus.getStatus("Swerve");
+      Logger.recordOutput("CANivore/Status", canivoreStatus.Status.getName());
+      Logger.recordOutput("CANivore/Utilization", canivoreStatus.BusUtilization);
+      Logger.recordOutput("CANivore/OffCount", canivoreStatus.BusOffCount);
+      Logger.recordOutput("CANivore/TxFullCount", canivoreStatus.TxFullCount);
+      Logger.recordOutput("CANivore/ReceiveErrorCount", canivoreStatus.REC);
+      Logger.recordOutput("CANivore/TransmitErrorCount", canivoreStatus.TEC);
+    }
   }
 
   /** This function is called once each time the robot enters Disabled mode. */
