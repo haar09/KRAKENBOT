@@ -24,6 +24,7 @@ import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.Constants.IntakextenderConstants;
@@ -44,6 +45,11 @@ import frc.robot.commands.SetAngle.ShooterSetAngle;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.BeamBreak;
 import frc.robot.subsystems.climb.Climb;
+import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.drive.GyroIO;
+import frc.robot.subsystems.drive.GyroIOPigeon2;
+import frc.robot.subsystems.drive.ModuleIOSim;
+import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.OV9281;
@@ -57,35 +63,15 @@ import frc.robot.subsystems.rollers.intake.Intake;
 import frc.robot.subsystems.shooter.Shooter;
 
 public class RobotContainer {
-  private double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
-  private double MaxAngularRate = 1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
-  private double SlowSpeed = 0.1;
-  private double SlowAngularRate = 0.25 * Math.PI;
-  private double AngularRate = MaxAngularRate;
-  private int controlMode = 0;
-  
+
   /* Setting up bindings for necessary control of the swerve drive platform */
   private final CommandXboxController joystick = new CommandXboxController(0); // My joystick
   private final CommandXboxController operator = new CommandXboxController(1); // My joystick
-  private final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain; // My drivetrain
-
-  private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-      .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
-      .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want field-centric driving in open loop
-
-  private final SwerveRequest.RobotCentric robotOriented = new SwerveRequest.RobotCentric()
-      .withDeadband(MaxSpeed * 0.1)
-      .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want r-centric driving in open loop
-
-  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
-
-  private final Telemetry logger = new Telemetry(drivetrain.getState());
-  private Supplier<SwerveRequest> controlStyle;
 
   private void configureBindings() {
     updateControlStyle();
 
-    joystick.y().whileTrue(drivetrain.applyRequest(() -> brake).withName("Swerve Brake"));
+    joystick.y().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
     joystick.leftTrigger(IntakextenderConstants.kIntakeDeadband).whileTrue(rollers.setStateCommand(RollerState.FLOOR_INTAKING));
     joystick.a().whileTrue(rollers.setStateCommand(RollerState.EJECTING));
@@ -132,12 +118,7 @@ public class RobotContainer {
 
 
     // reset the field-centric heading on menu button
-    joystick.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldRelative()));
-
-    if (Utils.isSimulation()) {
-      drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
-    }
-    drivetrain.registerTelemetry(logger::telemeterize);
+    joystick.start().onTrue(drive.resetFieldOriented());
 
     SmartDashboard.putData("Swerve Drive", new Sendable() {
       @Override
@@ -145,26 +126,26 @@ public class RobotContainer {
         builder.setSmartDashboardType("SwerveDrive");
 
         builder.addDoubleProperty("Front Left Angle",
-            () -> drivetrain.getModule(0).getCurrentState().angle.getRadians(), null);
+            () -> drive.modules[0].getAngle().getRadians(), null);
         builder.addDoubleProperty("Front Left Velocity",
-            () -> drivetrain.getModule(0).getCurrentState().speedMetersPerSecond, null);
+            () -> drive.modules[0].getVelocityMetersPerSec(), null);
 
         builder.addDoubleProperty("Front Right Angle",
-            () -> drivetrain.getModule(1).getCurrentState().angle.getRadians(), null);
+            () -> drive.modules[1].getAngle().getRadians(), null);
         builder.addDoubleProperty("Front Right Velocity",
-            () -> drivetrain.getModule(1).getCurrentState().speedMetersPerSecond, null);
+            () -> drive.modules[1].getVelocityMetersPerSec(), null);
 
-        builder.addDoubleProperty("Back Left Angle", () -> drivetrain.getModule(2).getCurrentState().angle.getRadians(),
+        builder.addDoubleProperty("Back Left Angle", () -> drive.modules[2].getAngle().getRadians(),
             null);
         builder.addDoubleProperty("Back Left Velocity",
-            () -> drivetrain.getModule(2).getCurrentState().speedMetersPerSecond, null);
+            () -> drive.modules[2].getVelocityMetersPerSec(), null);
 
         builder.addDoubleProperty("Back Right Angle",
-            () -> drivetrain.getModule(3).getCurrentState().angle.getRadians(), null);
+            () -> drive.modules[3].getAngle().getRadians(), null);
         builder.addDoubleProperty("Back Right Velocity",
-            () -> drivetrain.getModule(3).getCurrentState().speedMetersPerSecond, null);
+            () -> drive.modules[3].getVelocityMetersPerSec(), null);
 
-        builder.addDoubleProperty("Robot Angle", () -> drivetrain.getState().Pose.getRotation().getRadians(), null);
+        builder.addDoubleProperty("Robot Angle", () -> drive.getRotation().getRadians(), null);
       }
     });
     
@@ -194,10 +175,16 @@ public class RobotContainer {
   private final Climb climb;
   private final Pivot shooterPivot;
   private final BeamBreak beamBreak;
+  private final Drive drive;
 
   private LoggedDashboardChooser<Command> autoChooser;
 
   public RobotContainer() {
+    drive = Drive.create(new GyroIOPigeon2(true),
+      new ModuleIOTalonFX(0),
+      new ModuleIOTalonFX(1),
+      new ModuleIOTalonFX(2),
+      new ModuleIOTalonFX(3));
     ledSubsystem = new LEDSubsystem();
     extender = Extender.create();
     intake = Intake.create();
