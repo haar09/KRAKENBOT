@@ -40,7 +40,7 @@ public class GlobalVariables {
             return VisionConstants.angleFunction.value(speakerDistance);
         }
         else {
-            return 0;
+            return -1;
         }
     }
 

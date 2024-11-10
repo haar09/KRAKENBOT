@@ -88,7 +88,7 @@ public class Rollers extends SubsystemBase{
 
         if (beamBreak.upper_value) {
             ledSubsystem.isNote = true;
-            if (GlobalVariables.getInstance().speakerToAngle() > 0) {
+            if (GlobalVariables.getInstance().speakerToAngle() >= 0) {
                 ledSubsystem.isInRange = true;
             } else {
                 ledSubsystem.isInRange = false;

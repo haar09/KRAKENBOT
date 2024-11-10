@@ -1,6 +1,9 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj.XboxController;
+
+import org.littletonrobotics.junction.Logger;
+
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -51,33 +54,28 @@ public class ShooterAuto extends Command{
     public void execute() {
         double timeElapsed = Timer.getFPGATimestamp() - startTime;
 
-        if (GlobalVariables.getInstance().extenderFull) {
-            if (GlobalVariables.getInstance().speakerDistance < 3.8) {
-                shooter.state = ShooterState.SPEAKER_ACCELERATING;
-            }
-        } else {
+        if (!GlobalVariables.getInstance().extenderFull) {
             operatorController.setRumble(RumbleType.kBothRumble, 1);
-            if (state == State.START) {
-                return;
-            }
         }
+
+        if (GlobalVariables.getInstance().speakerDistance < 3.8) {
+            shooter.state = ShooterState.SPEAKER_ACCELERATING;
+        }
+
 
         shooterPivot.setDesiredAngle(GlobalVariables.getInstance().speakerToAngle());
 
         switch (state) {
             case START:
                 if (shooter.state == ShooterState.READY) {
-                    if (GlobalVariables.getInstance().extenderFull) {
-                        if (GlobalVariables.getInstance().speakerToAngle() > 0 &&
+                        if (GlobalVariables.getInstance().speakerToAngle() >= 0 &&
                         Math.abs(drivetrain.getState().speeds.vxMetersPerSecond) < 0.03 && Math.abs(drivetrain.getState().speeds.vyMetersPerSecond) < 0.03
                         && drivetrain.getPigeon2().getAngularVelocityZDevice().getValue() < 0.5) {
+                            Logger.recordOutput("Auto Shoot/Conditions Met", true);
                             operatorController.setRumble(RumbleType.kBothRumble, 0);
                             startTime = Timer.getFPGATimestamp();
                             state = State.EXTEND;
                         }
-                    } else {
-                        operatorController.setRumble(RumbleType.kBothRumble, 1);
-                    }
                 }
                 break;
             case EXTEND:
@@ -98,10 +96,13 @@ public class ShooterAuto extends Command{
                 ending = true;
                 break;
         }
+
+        Logger.recordOutput("Auto Shoot/State", state.toString());
     }
     
     @Override
     public void end(boolean interrupted){
+        Logger.recordOutput("Auto Shoot/Conditions Met", false);
         state = State.START;
         shooter.state = ShooterState.IDLE;
         rollers.state = RollerState.IDLE;

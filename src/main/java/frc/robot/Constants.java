@@ -110,7 +110,7 @@ public final class Constants {
       left_slot0Configs.kS = 0.27698; // Add 0.25 V output to overcome static friction
       left_slot0Configs.kV = 0.12961; // A velocity target of 1 rps results in 0.12 V output
       left_slot0Configs.kA = 0.019564; // An acceleration of 1 rps/s requires 0.01 V output
-      left_slot0Configs.kP = 0.17267; // An error of 1 rps results in 0.11 V output
+      left_slot0Configs.kP = 0.20423; // An error of 1 rps results in 0.11 V output
       left_slot0Configs.kI = 0; // no output for integrated error
       left_slot0Configs.kD = 0; // no output for error derivative 
     }
@@ -131,10 +131,10 @@ public final class Constants {
 
     static {
       right_slot0Configs = rightMotorConfig.Slot0;
-      right_slot0Configs.kS = 0.32511; // Add 0.25 V output to overcome static friction
-      right_slot0Configs.kV = 0.12875; // A velocity target of 1 rps results in 0.12 V output
-      right_slot0Configs.kA = 0.013378; // An acceleration of 1 rps/s requires 0.01 V output
-      right_slot0Configs.kP = 0.15872; // An error of 1 rps results in 0.11 V output
+      right_slot0Configs.kS = 0.32527; // Add 0.25 V output to overcome static friction
+      right_slot0Configs.kV = 0.12874; // A velocity target of 1 rps results in 0.12 V output
+      right_slot0Configs.kA = 0.013443; // An acceleration of 1 rps/s requires 0.01 V output
+      right_slot0Configs.kP = 0.19824; // An error of 1 rps results in 0.11 V output
       right_slot0Configs.kI = 0; // no output for integrated error
       right_slot0Configs.kD = 0; // no output for error derivative 
     }
