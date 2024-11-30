@@ -54,13 +54,19 @@ public class Shooter extends SubsystemBase{
 
     @Override
     public void periodic() {
+        SmartDashboard.putNumber("leftSpeed", inputs.leftVelocityRps);
+        SmartDashboard.putNumber("rightSpeed", inputs.rightVelocityRps);
+
+        io.updateInputs(inputs);
+        Logger.processInputs("Shooter", inputs);
+
         switch (state) {
             case IDLE:
                 SmartDashboard.putBoolean("shooterReady", false);
                 ledSubsystem.isAccelerating = false;
                 ledSubsystem.isReady = false;
                 io.neutralMotors();
-                if (GlobalVariables.getInstance().speakerDistance <= 4){
+                if (GlobalVariables.getInstance().speakerDistance <= 4 && GlobalVariables.getInstance().extenderFull){
                     state = ShooterState.PRESPEED;
                 }
                 break;
@@ -68,12 +74,12 @@ public class Shooter extends SubsystemBase{
                 if (GlobalVariables.getInstance().speakerDistance > 4){
                     state = ShooterState.IDLE;
                 }
-                io.setVelocity(ShooterConstants.kAmpSpeedLeft, ShooterConstants.kAmpSpeedRight);
+                io.setVelocity(ShooterConstants.kAmpSpeedLeft/2, ShooterConstants.kAmpSpeedRight/2);
                 break;
             case SPEAKER_ACCELERATING:
                 ledSubsystem.isAccelerating = true;
                 io.setVelocity(ShooterConstants.kSpeakerSpeedLeft, ShooterConstants.kSpeakerSpeedRight);
-                if (inputs.leftMotionMagicError < 3 && inputs.rightMotionMagicError < 3) {
+                if (ShooterConstants.kSpeakerSpeedLeft - inputs.leftVelocityRps < 3 && ShooterConstants.kSpeakerSpeedRight + inputs.rightVelocityRps < 3) {
                     SmartDashboard.putBoolean("shooterReady", true);
                     state = ShooterState.READY;
                     ledSubsystem.isReady = true;
@@ -82,7 +88,7 @@ public class Shooter extends SubsystemBase{
             case AMP_ACCELERATING:
                 ledSubsystem.isAccelerating = true;
                 io.setVelocity(ShooterConstants.kAmpSpeedLeft, ShooterConstants.kAmpSpeedRight);
-                if (inputs.leftMotionMagicError < 3 && inputs.rightMotionMagicError < 3) {
+                if (ShooterConstants.kAmpSpeedLeft - inputs.leftVelocityRps < 3 && ShooterConstants.kAmpSpeedRight + inputs.rightVelocityRps < 3) {
                     SmartDashboard.putBoolean("shooterReady", true);
                     state = ShooterState.READY;
                     ledSubsystem.isReady = true;
@@ -92,12 +98,6 @@ public class Shooter extends SubsystemBase{
                 ledSubsystem.isAccelerating = false;
                 break;
         }
-
-        SmartDashboard.putNumber("leftSpeed", inputs.leftVelocityRps);
-        SmartDashboard.putNumber("rightSpeed", inputs.rightVelocityRps);
-
-        io.updateInputs(inputs);
-        Logger.processInputs("Shooter", inputs);
 
         SmartDashboard.putString("Shooter State", state.toString());
         Logger.recordOutput("Shooter/State", state.toString());

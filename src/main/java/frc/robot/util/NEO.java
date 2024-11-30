@@ -79,7 +79,7 @@ public class NEO {
 
     // If a parameter set fails, this will add more time to alleviate any bus
     // traffic default is 20ms
-    motor.setCANTimeout(50);
+    motor.setCANTimeout(250);
 
     setInverted(reversed);
     setIdleMode(mode);
@@ -90,6 +90,8 @@ public class NEO {
     
     Timer.delay(0.5);
     burn();
+
+    motor.setCANTimeout(50);
   }
 
   /**
@@ -107,7 +109,7 @@ public class NEO {
   }
 
   public double getAppliedVoltage() {
-    return motor.getBusVoltage() * motor.get();
+    return motor.getBusVoltage() * motor.getAppliedOutput();
   }
 
   public double getTemperature() {

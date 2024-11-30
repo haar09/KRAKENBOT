@@ -15,13 +15,11 @@ public interface ShooterIO {
         public double leftAppliedVolts = 0.0;
         public double leftSupplyCurrentAmps = 0.0;
         public double leftTempCelsius = 0.0;
-        public double leftMotionMagicError = 0.0;
     
         public double rightVelocityRps = 0.0;
         public double rightAppliedVolts = 0.0;
         public double rightSupplyCurrentAmps = 0.0;
         public double rightTempCelsius = 0.0;
-        public double rightMotionMagicError = 0.0;
     }
 
     default void updateInputs(ShooterIOInputs inputs) {}

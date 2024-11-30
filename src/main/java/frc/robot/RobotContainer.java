@@ -24,6 +24,7 @@ import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.RepeatCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.Constants.IntakextenderConstants;
@@ -87,13 +88,17 @@ public class RobotContainer {
 
     joystick.y().whileTrue(drivetrain.applyRequest(() -> brake).withName("Swerve Brake"));
 
-    joystick.leftTrigger(IntakextenderConstants.kIntakeDeadband).whileTrue(rollers.setStateCommand(RollerState.FLOOR_INTAKING));
+    joystick.leftTrigger(IntakextenderConstants.kIntakeDeadband).whileTrue(new RepeatCommand(rollers.setStateCommand(RollerState.FLOOR_INTAKING)));
+    joystick.leftTrigger(IntakextenderConstants.kIntakeDeadband).onFalse(runOnce(() -> rollers.stopIfNotBusy()));
+
     joystick.a().whileTrue(rollers.setStateCommand(RollerState.EJECTING));
     joystick.x().whileTrue(rollers.setStateCommand(RollerState.STUCK_INTAKING));
     joystick.x().and(joystick.a()).whileTrue(rollers.setStateCommand(RollerState.STUCK_EJECTING));
+    joystick.a().onFalse(runOnce(() -> rollers.stopIfNotBusy()));
+    joystick.x().onFalse(runOnce(() -> rollers.stopIfNotBusy()));
 
     joystick.b().or(joystick.rightStick()).onTrue(new DriveToNote(drivetrain, objectDetection, joystick.getHID(), ledSubsystem, beamBreak)
-    .beforeStarting(rollers.setStateCommand(RollerState.FLOOR_INTAKING)));
+    .beforeStarting(rollers.setStateCommand(RollerState.FLOOR_INTAKING)).andThen(runOnce(() -> rollers.stopIfNotBusy())));
 
     joystick.leftBumper().onTrue(runOnce(() -> controlMode = 1).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
     joystick.leftBumper().onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));

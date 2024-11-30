@@ -24,15 +24,11 @@ public class RealShooter implements ShooterIO{
         leftMotorVelocity, rightMotorVelocity,
         leftMotorVoltage, rightMotorVoltage,
         leftMotorTemp, rightMotorTemp,
-        leftMotorSupplyCurrent, rightMotorSupplyCurrent,
-        leftMotorClosedLoopError, rightMotorClosedLoopError;
+        leftMotorSupplyCurrent, rightMotorSupplyCurrent;
 
         public RealShooter() {
             leftMotor.setNeutralMode(NeutralModeValue.Coast);
             rightMotor.setNeutralMode(NeutralModeValue.Coast);
-
-            leftMotor.setInverted(ShooterConstants.kShooterMotorLeftReversed);
-            rightMotor.setInverted(ShooterConstants.kShooterMotorRightReversed);
 
             leftMotor.getConfigurator().apply(ShooterConstants.leftMotorConfig);
             rightMotor.getConfigurator().apply(ShooterConstants.rightMotorConfig);
@@ -47,8 +43,6 @@ public class RealShooter implements ShooterIO{
             rightMotorTemp = rightMotor.getDeviceTemp();
             leftMotorSupplyCurrent = leftMotor.getSupplyCurrent();
             rightMotorSupplyCurrent = rightMotor.getSupplyCurrent();
-            leftMotorClosedLoopError = leftMotor.getClosedLoopError();
-            rightMotorClosedLoopError = rightMotor.getClosedLoopError();
 
             BaseStatusSignal.setUpdateFrequencyForAll(100,
             leftMotorVelocity,
@@ -60,9 +54,7 @@ public class RealShooter implements ShooterIO{
             leftMotorTemp,
             rightMotorTemp,
             leftMotorSupplyCurrent,
-            rightMotorSupplyCurrent,
-            leftMotorClosedLoopError,
-            rightMotorClosedLoopError);
+            rightMotorSupplyCurrent);
 
             leftMotor.optimizeBusUtilization();
             rightMotor.optimizeBusUtilization();
@@ -71,7 +63,7 @@ public class RealShooter implements ShooterIO{
         @Override
         public void setVelocity(double left, double right){
             leftMotor.setControl(leftMotorVoltageRequest.withVelocity(left));
-            rightMotor.setControl(rightMotorVoltageRequest.withVelocity(right));
+            rightMotor.setControl(rightMotorVoltageRequest.withVelocity(-right));
         }
 
         private final NeutralOut stopRequest = new NeutralOut();
@@ -90,14 +82,14 @@ public class RealShooter implements ShooterIO{
 
         @Override
         public void updateInputs(ShooterIOInputs inputs){
-            inputs.leftMotorConnected = BaseStatusSignal.isAllGood(leftMotorVelocity,
+            inputs.leftMotorConnected = BaseStatusSignal.refreshAll(leftMotorVelocity,
             leftMotorVoltage,
             leftMotorTemp,
-            leftMotorSupplyCurrent);
-            inputs.rightMotorConnected = BaseStatusSignal.isAllGood(rightMotorVelocity,
+            leftMotorSupplyCurrent).isOK();
+            inputs.rightMotorConnected = BaseStatusSignal.refreshAll(rightMotorVelocity,
             rightMotorVoltage,
             rightMotorTemp,
-            rightMotorSupplyCurrent);
+            rightMotorSupplyCurrent).isOK();;
 
             inputs.leftVelocityRps = leftMotorVelocity.getValueAsDouble();
             inputs.rightVelocityRps = rightMotorVelocity.getValueAsDouble();
@@ -110,8 +102,5 @@ public class RealShooter implements ShooterIO{
 
             inputs.leftTempCelsius = leftMotorTemp.getValueAsDouble();
             inputs.rightTempCelsius = rightMotorTemp.getValueAsDouble();
-
-            inputs.leftMotionMagicError = leftMotorClosedLoopError.getValueAsDouble();
-            inputs.rightMotionMagicError = rightMotorClosedLoopError.getValueAsDouble();
         }
 }

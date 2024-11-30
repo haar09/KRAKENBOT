@@ -18,6 +18,8 @@ public class LEDSubsystem extends SubsystemBase {
     private int position2 = 19;
     private int delaycounter = 0;
 
+    private Color noteColor = new Color(222, 49, 0);
+
     public LEDSubsystem() {
         // Must be a PWM header, not MXP or DIO
         m_led = new AddressableLED(1);
@@ -65,13 +67,13 @@ public class LEDSubsystem extends SubsystemBase {
         } else if (isAccelerating) {
             blink(Color.kGreen);
         } else if (isIntaking) {
-            blink(new Color(222, 49, 0));
+            blink(Color.kMagenta); // bi de beğenmezsen sil
         } else if (isAutodrive) {
             blink(Color.kRed);
         } else if (isInRange) {
             solid(Color.kBlue);
         } else if (isNote) {
-            solid(new Color(222, 49, 0));
+            solid(noteColor);
         } else if (isLowBattery) {
             solid(Color.kCrimson);
         } else {

@@ -8,6 +8,7 @@ import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.revrobotics.CANSparkBase.IdleMode;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.util.Units;
 import frc.robot.Constants.ShooterConstants;
@@ -40,11 +41,7 @@ public class RealPivot implements PivotIO {
             return;
         }
 
-        if (angle > ShooterConstants.kMaxShooterAngle) {
-            angle = ShooterConstants.kMaxShooterAngle;
-        } else if (angle < ShooterConstants.kMinShooterAngle) {
-            angle = ShooterConstants.kMinShooterAngle;
-        }
+        angle = MathUtil.clamp(angle, ShooterConstants.kMinShooterAngleRad, ShooterConstants.kMaxShooterAngleRad);
 
         pivotMotor.set(anglePidController.calculate(getAngle(), angle));
     }
@@ -71,6 +68,7 @@ public class RealPivot implements PivotIO {
     @Override
     public void updateInputs(PivotIOInputs inputs){
         inputs.motorConnected = pivotMotor.isConnected();
+        inputs.absoluteEncoderConnected = BaseStatusSignal.refreshAll(absoluteEncoder.getPosition(), absoluteEncoder.getAbsolutePosition()).isOK();
 
         inputs.positionRads = getAngle();
         inputs.absoluteEncoderPositionRads = Units.degreesToRadians(getAbsolutePosition());
@@ -78,7 +76,6 @@ public class RealPivot implements PivotIO {
         inputs.appliedVolts = pivotMotor.getAppliedVoltage();
         inputs.supplyCurrentAmps = pivotMotor.getCurrent();
         inputs.tempCelcius = pivotMotor.getTemperature();
-        inputs.absoluteEncoderConnected = BaseStatusSignal.isAllGood(absoluteEncoder.getPosition(), absoluteEncoder.getAbsolutePosition());
     }
 
 }

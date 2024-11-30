@@ -58,24 +58,26 @@ public class ShooterAuto extends Command{
             operatorController.setRumble(RumbleType.kBothRumble, 1);
         }
 
-        if (GlobalVariables.getInstance().speakerDistance < 3.8) {
-            shooter.state = ShooterState.SPEAKER_ACCELERATING;
-        }
-
-
         shooterPivot.setDesiredAngle(GlobalVariables.getInstance().speakerToAngle());
+
+        Logger.recordOutput("Auto Shoot/State", state.toString());
+        Logger.recordOutput("Auto Shoot/vx", Math.abs(drivetrain.getState().speeds.vxMetersPerSecond));
+        Logger.recordOutput("Auto Shoot/vy", Math.abs(drivetrain.getState().speeds.vyMetersPerSecond));       
+        Logger.recordOutput("Auto Shoot/vw", drivetrain.getPigeon2().getAngularVelocityZWorld().getValue()); 
 
         switch (state) {
             case START:
                 if (shooter.state == ShooterState.READY) {
-                        if (GlobalVariables.getInstance().speakerToAngle() >= 0 &&
-                        Math.abs(drivetrain.getState().speeds.vxMetersPerSecond) < 0.03 && Math.abs(drivetrain.getState().speeds.vyMetersPerSecond) < 0.03
-                        && drivetrain.getPigeon2().getAngularVelocityZDevice().getValue() < 0.5) {
+                        if (GlobalVariables.getInstance().speakerToAngle() > -1 &&
+                        Math.abs(drivetrain.getState().speeds.vxMetersPerSecond) < 0.1 && Math.abs(drivetrain.getState().speeds.vyMetersPerSecond) < 0.1
+                        && drivetrain.getPigeon2().getAngularVelocityZWorld().getValue() < 11) {
                             Logger.recordOutput("Auto Shoot/Conditions Met", true);
                             operatorController.setRumble(RumbleType.kBothRumble, 0);
                             startTime = Timer.getFPGATimestamp();
                             state = State.EXTEND;
                         }
+                } else if (GlobalVariables.getInstance().speakerDistance < 3.8) {
+                    shooter.state = ShooterState.SPEAKER_ACCELERATING;
                 }
                 break;
             case EXTEND:
@@ -96,8 +98,6 @@ public class ShooterAuto extends Command{
                 ending = true;
                 break;
         }
-
-        Logger.recordOutput("Auto Shoot/State", state.toString());
     }
     
     @Override

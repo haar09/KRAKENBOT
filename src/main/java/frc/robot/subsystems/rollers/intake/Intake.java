@@ -9,7 +9,7 @@ public class Intake{
     private final IntakeIOInputsAutoLogged inputs = new IntakeIOInputsAutoLogged();
 
     public static Intake create() {
-        return new Intake(Robot.isReal() ? new RealIntake() : new NoIntake());
+        return new Intake(Robot.isReal() ? new RealIntake() : new SimIntake());
     }
 
     public Intake(IntakeIO io) {

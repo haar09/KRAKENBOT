@@ -54,10 +54,10 @@ public class DriveToNote extends Command{
         m_targetList.add(objectDetection.targetValid());
         driverJoystick.setRumble(RumbleType.kRightRumble, 0.3);  
 
-        if(thetaController.getPositionError() > 3) {
-        drivetrain.setControl(robotOriented.withVelocityX(0).withRotationalRate(thetaController.calculate(objectDetection.getTX())));
+        if(Math.abs(objectDetection.getTX()) > 4) {
+        drivetrain.setControl(robotOriented.withVelocityX(0).withVelocityY(0).withRotationalRate(thetaController.calculate(objectDetection.getTX())));
         } else {
-            drivetrain.setControl(robotOriented.withVelocityX(-2).withVelocityY(0).withRotationalRate(0));
+            drivetrain.setControl(robotOriented.withVelocityX(-2).withVelocityY(0).withRotationalRate(thetaController.calculate(objectDetection.getTX())));
         }
 
         ledSubsystem.isAutodrive = true;

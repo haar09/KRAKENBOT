@@ -67,8 +67,8 @@ public final class Constants {
     public static final double kPLimeLightRotate = 0.07;
     public static final double kDLimeLightRotate = 0;
 
-    public static final double kPObjectRotate = 0.18;
-    public static final double kDObjectRotate = 0;
+    public static final double kPObjectRotate = 0.105;
+    public static final double kDObjectRotate = 0.015;
 
     public static final double kPObjectSpeed = 0.1;
   }
@@ -77,8 +77,8 @@ public final class Constants {
     
     public static final double kGearRatio = 1.0 / 11.357; // CANCODERIN GEAR RATIO
     public static final double kPivotMotorRot2Rad = kGearRatio * 2 * Math.PI;
-    public static final float kMinShooterAngle = 0;
-    public static final float kMaxShooterAngle = 39;
+    public static final double kMinShooterAngleRad = 0;
+    public static final double kMaxShooterAngleRad = Math.toRadians(39);
 
     public static final int kPivotMotorId = 3;
     public static final int kAbsoluteEncoderId = 54;
@@ -96,9 +96,7 @@ public final class Constants {
     
     public static final int kShooterMotorLeftId = 7;
     public static final int kShooterMotorRightId = 8;    
-  
-    public static final boolean kShooterMotorLeftReversed = false;
-    public static final boolean kShooterMotorRightReversed = true; 
+
   
     public static final TalonFXConfiguration leftMotorConfig = new TalonFXConfiguration();
 

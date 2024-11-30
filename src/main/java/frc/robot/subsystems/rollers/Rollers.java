@@ -42,48 +42,54 @@ public class Rollers extends SubsystemBase{
     public void periodic() {
         extender.periodic();
         intake.periodic();
-
+    
         switch (state) {
-            case IDLE -> {
+            case IDLE:
                 extender.setOutputPercentage(0);
                 intake.setOutputPercentage(0);
-            }
-            case FLOOR_INTAKING -> {
+                break;
+            case FLOOR_INTAKING:
                 if (beamBreak.upper_value) {
+                    extender.setOutputPercentage(0);
+                    intake.setOutputPercentage(0);
                     state = RollerState.IDLE;
+                    break;
                 }
                 if (beamBreak.lower_value) {
                     state = RollerState.INDEXING;
                 }
-                extender.setOutputPercentage(IntakextenderConstants.kIntakeMotorSpeed);
-                intake.setOutputPercentage(IntakextenderConstants.kExtenderSpeed);
-            }
-            case INDEXING -> {
+                extender.setOutputPercentage(IntakextenderConstants.kExtenderSpeed);
+                intake.setOutputPercentage(IntakextenderConstants.kIntakeMotorSpeed);
+                break;
+            case INDEXING:
                 if (beamBreak.upper_value) {
+                    extender.setOutputPercentage(0);
+                    intake.setOutputPercentage(0);
                     state = RollerState.IDLE;
+                    break;
                 }
-                extender.setOutputPercentage(IntakextenderConstants.kIntakeMotorSpeed);
-                intake.setOutputPercentage(IntakextenderConstants.kExtenderSpeed);
-            }
-            case STUCK_INTAKING -> {
+                extender.setOutputPercentage(IntakextenderConstants.kExtenderSpeed);
+                intake.setOutputPercentage(IntakextenderConstants.kIntakeMotorSpeed);
+                break;
+            case STUCK_INTAKING:
                 extender.setOutputPercentage(0.8);
                 intake.setOutputPercentage(0.8);
-            }
-            case EJECTING -> {
-                extender.setOutputPercentage(-IntakextenderConstants.kIntakeMotorSpeed);
-                intake.setOutputPercentage(-IntakextenderConstants.kExtenderSpeed);
-            }
-            case STUCK_EJECTING -> {
+                break;
+            case EJECTING:
+                extender.setOutputPercentage(-IntakextenderConstants.kExtenderSpeed);
+                intake.setOutputPercentage(-IntakextenderConstants.kIntakeMotorSpeed);
+                break;
+            case STUCK_EJECTING:
                 extender.setOutputPercentage(-0.8);
                 intake.setOutputPercentage(-0.8);
-            }
-            case PREPARE_FEED -> {
+                break;
+            case PREPARE_FEED:
                 extender.setOutputPercentage(-IntakextenderConstants.kExtenderBackSpeed);
-            }
-            case FEEDING -> {
+                break;
+            case FEEDING:
                 extender.setOutputPercentage(1);
                 intake.setOutputPercentage(0.6);
-            }
+                break;
         }
 
         if (beamBreak.upper_value) {
@@ -105,6 +111,15 @@ public class Rollers extends SubsystemBase{
     }
 
     public Command setStateCommand(RollerState state) {
-        return startEnd(() -> this.state = state, () -> this.state = RollerState.IDLE).withName("Rollers "+state.toString());
+        return runOnce(() -> this.state = state).withName("Rollers "+state.toString());
+    }
+
+    public void stopIfNotBusy() {
+        if (this.state == RollerState.INDEXING) {
+            this.state = RollerState.INDEXING;
+        } else {
+            this.state = RollerState.IDLE;
+        }
+        return;
     }
 }
