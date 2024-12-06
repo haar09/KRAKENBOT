@@ -115,18 +115,24 @@ public class RobotContainer {
 
     joystick.rightTrigger(0.3).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
 
-    joystick.pov(180).onTrue(new GoToFeedPosition(ledSubsystem));
+    /*joystick.pov(180).onTrue(new GoToFeedPosition(ledSubsystem));
 
     joystick.pov(0).whileTrue(new FeedAuto(shooter, rollers, shooterPivot, joystick.getHID()))
     .onTrue(runOnce(() -> controlMode = 4).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
-    joystick.pov(0).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));
+    joystick.pov(0).onFalse(runOnce(() -> controlMode = 0).andThen(() -> updateControlStyle()).withName("controlStyleUpdate"));*/
 
     // HALILI TESTLER
-    /*
+    
     joystick.pov(0).whileTrue(drivetrain.runDriveQuasiTest(Direction.kForward));
     joystick.pov(90).whileTrue(drivetrain.runDriveQuasiTest(Direction.kReverse));
     joystick.pov(180).whileTrue(drivetrain.runDriveDynamTest(Direction.kForward));
     joystick.pov(270).whileTrue(drivetrain.runDriveDynamTest(Direction.kReverse));
+    /*
+    joystick.pov(0).whileTrue(drivetrain.runAngulaDynamTest(Direction.kForward));
+    joystick.pov(90).whileTrue(drivetrain.runAngularQuasiTest(Direction.kReverse));
+    joystick.pov(180).whileTrue(drivetrain.runAngulaDynamTest(Direction.kForward));
+    joystick.pov(270).whileTrue(drivetrain.runAngularQuasiTest(Direction.kReverse));
+
     joystick.pov(0).whileTrue(drivetrain.runSteerQuasiTest(Direction.kForward));
     joystick.pov(90).whileTrue(drivetrain.runSteerQuasiTest(Direction.kReverse));
     joystick.pov(180).whileTrue(drivetrain.runSteerDynamTest(Direction.kForward));
@@ -275,10 +281,4 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     return autoChooser.get();
   }
-
-  /*private Command rumbleDriverController() {
-    return Commands.startEnd(
-      () -> joystick.getHID().setRumble(RumbleType.kBothRumble, 1),
-      () -> joystick.getHID().setRumble(RumbleType.kBothRumble, 0));
-  }*/
 }

@@ -9,6 +9,7 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
+import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest.SysIdSwerveRotation;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
@@ -133,12 +134,11 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     }
 
     public double getDriveBaseRadius() {
-        return m_moduleLocations[0].getNorm();
-    }
-
-    public double getDriveBaseRadius2() {
-        return m_moduleLocations[2].getNorm();
-
+        double driveBaseRadius = 0;
+        for (var moduleLocation : m_moduleLocations) {
+            driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
+        }
+        return driveBaseRadius;
     }
 
     private void configurePathPlanner() {
@@ -176,6 +176,16 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
             null,
             this));
 
+    private SysIdSwerveRotation angularVoltageRequest = new SwerveRequest.SysIdSwerveRotation();
+
+    private SysIdRoutine m_angularSysIdRoutine =
+            new SysIdRoutine(
+                new SysIdRoutine.Config(null, null, null, ModifiedSignalLogger.logState()),
+                new SysIdRoutine.Mechanism(
+                    (Measure<Voltage> volts) -> setControl(angularVoltageRequest.withVolts(volts)),
+                    null,
+                    this));
+
     private SwerveVoltageRequest steerVoltageRequest = new SwerveVoltageRequest(false);
 
     private SysIdRoutine m_steerSysIdRoutine =
@@ -201,6 +211,15 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
     public Command runDriveDynamTest(SysIdRoutine.Direction direction) {
         return m_driveSysIdRoutine.dynamic(direction);
+    }
+
+    public Command runAngularQuasiTest(Direction direction)
+    {
+        return m_angularSysIdRoutine.quasistatic(direction);
+    }
+
+    public Command runAngulaDynamTest(SysIdRoutine.Direction direction) {
+        return m_angularSysIdRoutine.dynamic(direction);
     }
 
     public Command runSteerQuasiTest(Direction direction)

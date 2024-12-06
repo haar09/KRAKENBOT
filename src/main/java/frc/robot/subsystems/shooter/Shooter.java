@@ -74,7 +74,7 @@ public class Shooter extends SubsystemBase{
                 if (GlobalVariables.getInstance().speakerDistance > 4){
                     state = ShooterState.IDLE;
                 }
-                io.setVelocity(ShooterConstants.kAmpSpeedLeft/2, ShooterConstants.kAmpSpeedRight/2);
+                //io.setVelocity(ShooterConstants.kAmpSpeedLeft/2, ShooterConstants.kAmpSpeedRight/2);
                 break;
             case SPEAKER_ACCELERATING:
                 ledSubsystem.isAccelerating = true;

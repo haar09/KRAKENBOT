@@ -21,15 +21,15 @@ public class ShooterAuto extends Command{
     private final CommandSwerveDrivetrain drivetrain;
     private final Pivot shooterPivot;
     private boolean ending;
-    private final XboxController operatorController;
+    private final XboxController driverController;
 
     public ShooterAuto(Shooter shooter, Rollers rollers,
-    CommandSwerveDrivetrain drivetrain, Pivot shooterPivot, XboxController operatorController){
+    CommandSwerveDrivetrain drivetrain, Pivot shooterPivot, XboxController driverController){
         this.shooter = shooter;
         this.rollers = rollers;
         this.drivetrain = drivetrain;
         this.shooterPivot = shooterPivot;
-        this.operatorController = operatorController;
+        this.driverController = driverController;
         ending = false;
         addRequirements(shooter); 
     }
@@ -55,7 +55,7 @@ public class ShooterAuto extends Command{
         double timeElapsed = Timer.getFPGATimestamp() - startTime;
 
         if (!GlobalVariables.getInstance().extenderFull) {
-            operatorController.setRumble(RumbleType.kBothRumble, 1);
+            driverController.setRumble(RumbleType.kBothRumble, 1);
         }
 
         shooterPivot.setDesiredAngle(GlobalVariables.getInstance().speakerToAngle());
@@ -72,7 +72,7 @@ public class ShooterAuto extends Command{
                         Math.abs(drivetrain.getState().speeds.vxMetersPerSecond) < 0.1 && Math.abs(drivetrain.getState().speeds.vyMetersPerSecond) < 0.1
                         && drivetrain.getPigeon2().getAngularVelocityZWorld().getValue() < 11) {
                             Logger.recordOutput("Auto Shoot/Conditions Met", true);
-                            operatorController.setRumble(RumbleType.kBothRumble, 0);
+                            driverController.setRumble(RumbleType.kBothRumble, 0);
                             startTime = Timer.getFPGATimestamp();
                             state = State.EXTEND;
                         }
@@ -102,6 +102,7 @@ public class ShooterAuto extends Command{
     
     @Override
     public void end(boolean interrupted){
+        driverController.setRumble(RumbleType.kBothRumble, 0);
         Logger.recordOutput("Auto Shoot/Conditions Met", false);
         state = State.START;
         shooter.state = ShooterState.IDLE;
