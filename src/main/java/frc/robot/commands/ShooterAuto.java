@@ -63,14 +63,14 @@ public class ShooterAuto extends Command{
         Logger.recordOutput("Auto Shoot/State", state.toString());
         Logger.recordOutput("Auto Shoot/vx", Math.abs(drivetrain.getState().Speeds.vxMetersPerSecond));
         Logger.recordOutput("Auto Shoot/vy", Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond));       
-        Logger.recordOutput("Auto Shoot/vw", drivetrain.getPigeon2().getAngularVelocityZWorld().getValue()); 
+        Logger.recordOutput("Auto Shoot/vw", drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()); 
 
         switch (state) {
             case START:
                 if (shooter.state == ShooterState.READY) {
                         if (GlobalVariables.getInstance().speakerToAngle() > -1 &&
                         Math.abs(drivetrain.getState().Speeds.vxMetersPerSecond) < 0.1 && Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond) < 0.1
-                        && drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble() < 11) {
+                        && Math.abs(drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()) < 0.1) {
                             Logger.recordOutput("Auto Shoot/Conditions Met", true);
                             driverController.setRumble(RumbleType.kBothRumble, 0);
                             startTime = Timer.getFPGATimestamp();

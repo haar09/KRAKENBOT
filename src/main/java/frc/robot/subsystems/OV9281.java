@@ -22,6 +22,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -38,7 +39,7 @@ public class OV9281 extends SubsystemBase{
     private final CommandSwerveDrivetrain drivetrain;
     private final String cameraName;
     public List<Pose3d> poseList = new ArrayList<>();
-    private final Pose3d emptyPose = new Pose3d();
+    private final Pose3d emptyPose = new Pose3d(-10, -10, -2, new Rotation3d());
     private final boolean useSim = Robot.isSimulation();
     private final VisionSystemSim visionSim;
     private Matrix<N3, N1> curStdDevs;
@@ -50,7 +51,7 @@ public class OV9281 extends SubsystemBase{
         camera = new PhotonCamera(cameraName);
 
         if(useSim) {
-            visionSim = new VisionSystemSim("01");
+            visionSim = new VisionSystemSim(cameraName);
             visionSim.addAprilTags(VisionConstants.kTagLayout);
             SimCameraProperties cameraProperties = new SimCameraProperties();
             cameraProperties.setCalibration(1280, 800, Rotation2d.fromDegrees(79));
@@ -86,13 +87,19 @@ public class OV9281 extends SubsystemBase{
         var estStdDevs = getEstimationStdDevs();
         drivetrain.addVisionMeasurement(estPose2d, visionEst.timestampSeconds, estStdDevs);
         Logger.recordOutput("Vision/"+cameraName+"/Current Estimation", visionEst.estimatedPose);
-        } else {
-            Logger.recordOutput("Vision/"+cameraName+"/Current Estimation", emptyPose);
-        }
-
         poseList.clear();
-        for (var tgt : results.get(results.size() - 1).getTargets()) {
-            poseList.add(VisionConstants.kTagLayout.getTagPose(tgt.getFiducialId()).orElse(null));
+        for (var result : results) {
+            if (result.multitagResult.isPresent()) {
+            result.multitagResult.get().fiducialIDsUsed.forEach(id -> {
+                var tagPose = VisionConstants.kTagLayout.getTagPose(id).orElse(null);
+                if (tagPose != null) {
+                    poseList.add(tagPose);
+                }
+            });}
+        }
+        } else {
+            poseList.clear();
+            Logger.recordOutput("Vision/"+cameraName+"/Current Estimation", emptyPose);
         }
 
         Logger.recordOutput("Vision/"+cameraName+"/Connected", camera.isConnected());
@@ -166,6 +173,8 @@ public class OV9281 extends SubsystemBase{
     }
 
     public boolean isTargetValid() {
+        if (results == null) return false;
+        if (results.isEmpty()) return false;
         return results.get(results.size() - 1).hasTargets(); 
     }
 

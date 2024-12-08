@@ -46,7 +46,7 @@ public class TunerConstants {
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
-    private static final Current kSlipCurrent = Amps.of(70.0);
+    public static final Current kSlipCurrent = Amps.of(70.0);
 
     // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
@@ -75,7 +75,7 @@ public class TunerConstants {
 
     public static final double kDriveGearRatio = 5.357142857142857;
     public static final double kSteerGearRatio = 21.428571428571427;
-    private static final Distance kWheelRadius = Inches.of(2); //RADIUS DIAMTER DEGIL
+    public static final Distance kWheelRadius = Inches.of(2); //RADIUS DIAMTER DEGIL
 
     private static final boolean kInvertLeftSide = false;
     private static final boolean kInvertRightSide = true;

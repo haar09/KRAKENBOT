@@ -25,14 +25,18 @@ public class ObjectDetection extends SubsystemBase{
     @Override
     public void periodic(){
         results = camera.getAllUnreadResults();
-        result = results.get(results.size() - 1);
+        if (!results.isEmpty()) {
+        result = results.get(results.size() -1);
         hasTargets = result.hasTargets();
         if (result.hasTargets()) {
             tx = result.getBestTarget().getYaw();
         } else {
             tx = 0;
         }
-
+        } else {
+            hasTargets = false;
+            tx = 0;
+        }
         Logger.recordOutput("Vision/ar0234/Target Valid", hasTargets);
         Logger.recordOutput("Vision/ar0234/Object TX", tx);
         Logger.recordOutput("Vision/ar0234/Connected", camera.isConnected());

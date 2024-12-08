@@ -14,10 +14,14 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.util.PathPlannerLogging;
+import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.PIDConstants;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -32,6 +36,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.GlobalVariables;
+import frc.robot.generated.TunerConstants;
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements
@@ -128,10 +133,23 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         }
         return driveBaseRadius;
     }
+    
+    RobotConfig kPathPlannerConfig = new RobotConfig(
+        AutoConstants.kRobotWeight,
+        AutoConstants.kMOI,
+        new ModuleConfig(
+            TunerConstants.kWheelRadius.in(Meters),
+            TunerConstants.kSpeedAt12Volts.in(MetersPerSecond),
+            1.2,
+            DCMotor.getKrakenX60Foc(1).withReduction(TunerConstants.kDriveGearRatio),
+            TunerConstants.kSlipCurrent.in(Amps),
+            1
+        ),
+        TunerConstants.kSagSolArasi,
+        getDriveBaseRadius()
+      );
 
     private void configurePathPlanner() {
-        try {
-            var config = RobotConfig.fromGUISettings();
             AutoBuilder.configure(
                 () -> getState().Pose,   // Supplier of current robot pose
                 this::resetPose,         // Consumer for seeding pose against auto
@@ -148,14 +166,18 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
                     // PID constants for rotation
                     new PIDConstants(AutoConstants.kPThetaController, 0, 0)
                 ),
-                config,
+                kPathPlannerConfig,
                 // Assume the path needs to be flipped for Red vs Blue, this is normally the case
                 () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
                 this // Subsystem for requirements
             );
-        } catch (Exception ex) {
-            DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder", ex.getStackTrace());
-        }
+            PathPlannerLogging.setLogActivePathCallback(
+                (path) -> {
+                    if (path != null) {
+                        Logger.recordOutput("PathFinder/Current Path", path.toArray(new Pose2d[path.size()]));
+                    }
+                }
+            );
     }
 
     /* Swerve requests to apply during SysId characterization */

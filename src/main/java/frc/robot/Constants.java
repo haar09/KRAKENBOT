@@ -27,6 +27,9 @@ import edu.wpi.first.math.numbers.N3;
 public final class Constants {
   
   public static final class AutoConstants {
+    public static final double kRobotWeight = 47.6;
+    public static final double kMOI = 10;
+
     public static final double kMaxSpeedMetersPerSecond = 4.5;
     public static final double kPXYController = 10;
     public static final double kPThetaController = 7;
