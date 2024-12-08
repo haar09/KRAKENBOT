@@ -42,9 +42,11 @@ import frc.robot.subsystems.BeamBreak;
 import frc.robot.subsystems.climb.Climb;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.LEDSubsystem;
-import frc.robot.subsystems.OV9281;
 import frc.robot.subsystems.ObjectDetection;
 import frc.robot.subsystems.ampMechanism.AmpMechanism;
+import frc.robot.subsystems.apriltagvision.AprilTagVision;
+import frc.robot.subsystems.apriltagvision.RealPhotonVision;
+import frc.robot.subsystems.apriltagvision.SimPhotonVision;
 import frc.robot.subsystems.pivot.Pivot;
 import frc.robot.subsystems.rollers.Rollers;
 import frc.robot.subsystems.rollers.Rollers.RollerState;
@@ -201,8 +203,15 @@ public class RobotContainer {
     ampMechanism = AmpMechanism.create();
     climb = Climb.create();
 
-    new OV9281(drivetrain, "Arducam_OV9281_USB_Camera_001", VisionConstants.kRobotToCam1);
-    new OV9281(drivetrain, "Arducam_OV9281_USB_Camera_002", VisionConstants.kRobotToCam2);
+    if (Robot.isReal()) {
+      new AprilTagVision(drivetrain::addVisionMeasurement,
+                       new RealPhotonVision("Arducam_OV9281_USB_Camera_001", VisionConstants.kRobotToCam1),
+                       new RealPhotonVision("Arducam_OV9281_USB_Camera_002", VisionConstants.kRobotToCam2));
+    } else {
+      new AprilTagVision(drivetrain::addVisionMeasurement,
+                       new SimPhotonVision("Arducam_OV9281_USB_Camera_001", VisionConstants.kRobotToCam1, () -> drivetrain.getState().Pose),
+                       new SimPhotonVision("Arducam_OV9281_USB_Camera_002", VisionConstants.kRobotToCam2, () -> drivetrain.getState().Pose));
+    }
 
     ampMechanism.setDefaultCommand(
       new AmpMechanismCmd(

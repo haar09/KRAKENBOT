@@ -98,7 +98,6 @@ public class OV9281 extends SubsystemBase{
             });}
         }
         } else {
-            poseList.clear();
             Logger.recordOutput("Vision/"+cameraName+"/Current Estimation", emptyPose);
         }
 
