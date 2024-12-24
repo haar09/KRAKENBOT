@@ -2,6 +2,8 @@ package frc.robot.subsystems.shooter;
 
 import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.units.measure.Voltage;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -19,6 +21,8 @@ public class Shooter extends SubsystemBase{
     private final ShooterIO io;
     private final LEDSubsystem ledSubsystem;
     private final ShooterIOInputsAutoLogged inputs = new ShooterIOInputsAutoLogged();
+    private final Alert leftDisconnectedAlert;
+    private final Alert rightDisconnectedAlert;
 
     public static Shooter create(LEDSubsystem ledSubsystem) {
         return new Shooter(Robot.isReal() ? new RealShooter() : new NoShooter(), ledSubsystem);    
@@ -38,6 +42,9 @@ public class Shooter extends SubsystemBase{
                 (Voltage volts)-> io.setSysIdVoltage(volts), // hangi motor oldugunu RealShooterdan sec
                 null,
                 this));
+
+        this.leftDisconnectedAlert = new Alert("Shooter Left is disconnected.", AlertType.kWarning);
+        this.rightDisconnectedAlert = new Alert("Shooter Right is disconnected.", AlertType.kWarning);
     }
 
     public enum ShooterState {
@@ -57,6 +64,8 @@ public class Shooter extends SubsystemBase{
 
         io.updateInputs(inputs);
         Logger.processInputs("Shooter", inputs);
+        leftDisconnectedAlert.set(!inputs.leftMotorConnected);
+        rightDisconnectedAlert.set(!inputs.rightMotorConnected);
 
         switch (state) {
             case IDLE:

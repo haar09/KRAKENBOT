@@ -70,7 +70,7 @@ public class ShooterAuto extends Command{
                 if (shooter.state == ShooterState.READY) {
                         if (GlobalVariables.getInstance().speakerToAngle() > -1 &&
                         Math.abs(drivetrain.getState().Speeds.vxMetersPerSecond) < 0.1 && Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond) < 0.1
-                        && Math.abs(drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()) < 0.1) {
+                        && Math.abs(drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()) < 7) {
                             Logger.recordOutput("Auto Shoot/Conditions Met", true);
                             driverController.setRumble(RumbleType.kBothRumble, 0);
                             startTime = Timer.getFPGATimestamp();

@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import java.util.List;
@@ -14,12 +15,15 @@ public class ObjectDetection extends SubsystemBase{
     private PhotonPipelineResult result;
     private double tx;
     private boolean hasTargets;
+    private final Alert disconnectedAlert;
 
     public ObjectDetection() {        
         camera = new PhotonCamera("ar0234");
 
         hasTargets = false;
         tx = 0;
+
+        disconnectedAlert = new Alert("Object Detection is disconnected.", Alert.AlertType.kWarning);
     }
 
     @Override
@@ -40,6 +44,7 @@ public class ObjectDetection extends SubsystemBase{
         Logger.recordOutput("Vision/ar0234/Target Valid", hasTargets);
         Logger.recordOutput("Vision/ar0234/Object TX", tx);
         Logger.recordOutput("Vision/ar0234/Connected", camera.isConnected());
+        disconnectedAlert.set(!camera.isConnected());
     }
 
     public double getTX() {
